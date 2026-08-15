@@ -53,6 +53,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.7
 
 flutter_launcher_icons:
   android: true
@@ -68,6 +69,25 @@ flutter_launcher_icons:
   adaptive_icon_background: "assets/icon/background.png"
   adaptive_icon_foreground: "assets/icon/foreground.png"
   adaptive_icon_monochrome: "assets/icon/monochrome.png"
+
+# Native splash — the screen the OS shows before the Flutter engine has drawn
+# its first frame, so it can only be a solid color plus a static image (no
+# animation, no gradient photo). Same crescent as the app icon, recolored ink
+# on cream for light mode since the icon's white moon disappears on a light
+# background; colors match AppPalette in lib/core/theme.dart.
+flutter_native_splash:
+  color: "#F1EDE5"
+  color_dark: "#272624"
+  image: assets/icon/moon_ink.png
+  image_dark: assets/icon/foreground.png
+  android_12:
+    color: "#F1EDE5"
+    color_dark: "#272624"
+    image: assets/icon/moon_ink.png
+    image_dark: assets/icon/foreground.png
+  android: true
+  ios: true
+  web: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

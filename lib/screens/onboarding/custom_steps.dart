@@ -10,8 +10,18 @@ import '../../widgets/reveal.dart';
 import 'step_scaffolds.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatDate(DateTime d) => '${_months[d.month - 1]} ${d.day}, ${d.year}';
@@ -43,9 +53,135 @@ class SoftCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: highlighted ? Border.all(color: AppColors.gold, width: 1.4) : null,
+        border: highlighted
+            ? Border.all(color: AppColors.gold, width: 1.4)
+            : null,
       ),
       child: child,
+    );
+  }
+}
+
+class _StampProofCard extends StatefulWidget {
+  const _StampProofCard({required this.vision, this.delay = Duration.zero});
+
+  final String vision;
+  final Duration delay;
+
+  @override
+  State<_StampProofCard> createState() => _StampProofCardState();
+}
+
+class _StampProofCardState extends State<_StampProofCard>
+    with SingleTickerProviderStateMixin {
+  Timer? _timer;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+  );
+
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.55,
+        end: 0.92,
+      ).chain(CurveTween(curve: Curves.easeInCubic)),
+      weight: 48,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 0.92,
+        end: 1.05,
+      ).chain(CurveTween(curve: Curves.easeOutBack)),
+      weight: 32,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.05,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 20,
+    ),
+  ]).animate(_controller);
+
+  late final Animation<double> _opacity = CurvedAnimation(
+    parent: _controller,
+    curve: const Interval(0, 0.16, curve: Curves.easeOut),
+  );
+
+  late final Animation<double> _angle = Tween<double>(
+    begin: -7,
+    end: -2.4,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _timer = Timer(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = AppColors.ctaOnBg.withValues(alpha: 0.68);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.rotate(
+            angle: _angle.value * math.pi / 180,
+            child: Transform.scale(scale: _scale.value, child: child),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        decoration: BoxDecoration(
+          color: AppColors.ctaBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.gold, width: 1.4),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ctaBg.withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text("WHERE YOU'RE HEADED", style: AppText.overline(color: muted)),
+            const SizedBox(height: 10),
+            Text(
+              '🌿 ${widget.vision}',
+              textAlign: TextAlign.center,
+              style: AppText.serif(size: 18, color: AppColors.ctaOnBg),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Thousands use Daily Quran Verse to start their day '
+              'with the Book of Allah',
+              textAlign: TextAlign.center,
+              style: AppText.sans(size: 13.5, color: AppColors.gold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -119,7 +255,10 @@ class WelcomeStep extends StatelessWidget {
                 const Spacer(flex: 4),
                 DelayedFade(
                   delay: const Duration(milliseconds: 1250),
-                  child: LightButton(label: 'Begin my journey', onPressed: onNext),
+                  child: LightButton(
+                    label: 'Begin my journey',
+                    onPressed: onNext,
+                  ),
                 ),
                 const SizedBox(height: 22),
               ],
@@ -136,18 +275,16 @@ class WelcomeStep extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class SocialProofStep extends StatelessWidget {
-  const SocialProofStep({
-    super.key,
-    required this.data,
-    required this.onNext,
-  });
+  const SocialProofStep({super.key, required this.data, required this.onNext});
 
   final OnboardingData data;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
-    final goal = data.goals.isEmpty ? 'Get a Quran verse every day' : data.goals.first;
+    final goal = data.goals.isEmpty
+        ? 'Get a Quran verse every day'
+        : data.goals.first;
     final vision = data.vision ?? "A constant sense of Allah's presence";
 
     return SafeArea(
@@ -186,27 +323,9 @@ class SocialProofStep extends StatelessWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 30),
-                      child: SoftCard(
-                        highlighted: true,
-                        child: Column(
-                          children: [
-                            Text("WHERE YOU'RE HEADED",
-                                style: AppText.overline(color: AppColors.inkSoft)),
-                            const SizedBox(height: 10),
-                            Text(
-                              '🌿 $vision',
-                              textAlign: TextAlign.center,
-                              style: AppText.serif(size: 18),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Thousands use Daily Quran Verse to start their day '
-                              'with the Book of Allah',
-                              textAlign: TextAlign.center,
-                              style: AppText.sans(size: 13.5, color: AppColors.gold),
-                            ),
-                          ],
-                        ),
+                      child: _StampProofCard(
+                        vision: vision,
+                        delay: const Duration(milliseconds: 660),
                       ),
                     ),
                     Padding(
@@ -299,12 +418,19 @@ class SummaryStep extends StatelessWidget {
                         style: AppText.sans(size: 15),
                       ),
                     ),
-                    _card('WHERE YOU WANT TO GO',
-                        '🌿 ${data.vision ?? "A constant sense of Allah's presence"}'),
-                    _card('WHERE YOU ARE NOW',
-                        '🌱 ${data.faithStatus ?? "Finding my way back to Him"}'),
-                    _card("WHAT'S STANDING IN THE WAY", '🧭 $obstacle',
-                        bullet: true),
+                    _card(
+                      'WHERE YOU WANT TO GO',
+                      '🌿 ${data.vision ?? "A constant sense of Allah's presence"}',
+                    ),
+                    _card(
+                      'WHERE YOU ARE NOW',
+                      '🌱 ${data.faithStatus ?? "Finding my way back to Him"}',
+                    ),
+                    _card(
+                      "WHAT'S STANDING IN THE WAY",
+                      '🧭 $obstacle',
+                      bullet: true,
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(top: 12, bottom: 12),
                       child: Text.rich(
@@ -364,7 +490,11 @@ class NotificationsPreviewStep extends StatelessWidget {
               Text(
                 text,
                 textAlign: TextAlign.center,
-                style: AppText.sans(size: 13, color: AppColors.ink, height: 1.35),
+                style: AppText.sans(
+                  size: 13,
+                  color: AppColors.ink,
+                  height: 1.35,
+                ),
               ),
               if (source != null) ...[
                 const SizedBox(height: 8),
@@ -409,8 +539,10 @@ class NotificationsPreviewStep extends StatelessWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: Text('NOTIFICATIONS',
-                            style: AppText.overline(color: AppColors.inkSoft)),
+                        child: Text(
+                          'NOTIFICATIONS',
+                          style: AppText.overline(color: AppColors.inkSoft),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 30),
@@ -440,8 +572,10 @@ class NotificationsPreviewStep extends StatelessWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: Text('WIDGETS',
-                            style: AppText.overline(color: AppColors.inkSoft)),
+                        child: Text(
+                          'WIDGETS',
+                          style: AppText.overline(color: AppColors.inkSoft),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20),
@@ -449,12 +583,15 @@ class NotificationsPreviewStep extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _widgetTile('And He is with you wherever you are',
-                                  '— Al-Hadid 57:4'),
+                              _widgetTile(
+                                'And He is with you wherever you are',
+                                '— Al-Hadid 57:4',
+                              ),
                               const SizedBox(width: 12),
                               _widgetTile(
-                                  'Ya Allah, keep my heart firm upon Your deen',
-                                  null),
+                                'Ya Allah, keep my heart firm upon Your deen',
+                                null,
+                              ),
                             ],
                           ),
                         ),
@@ -472,8 +609,10 @@ class NotificationsPreviewStep extends StatelessWidget {
                     children: [
                       Text('Tap to continue', style: AppText.sans(size: 14.5)),
                       const SizedBox(width: 8),
-                      Text('→',
-                          style: TextStyle(color: AppColors.gold, fontSize: 16)),
+                      Text(
+                        '→',
+                        style: TextStyle(color: AppColors.gold, fontSize: 16),
+                      ),
                     ],
                   ),
                 ),
@@ -515,21 +654,29 @@ class _Notification extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(title,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.sans(
-                            size: 13,
-                            color: AppColors.ink,
-                            weight: FontWeight.w700,
-                          )),
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.sans(
+                          size: 13,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text('now', style: AppText.sans(size: 11.5)),
                   ],
                 ),
               if (showMeta) const SizedBox(height: 3),
-              Text(body,
-                  style: AppText.sans(size: 13, color: AppColors.ink, height: 1.35)),
+              Text(
+                body,
+                style: AppText.sans(
+                  size: 13,
+                  color: AppColors.ink,
+                  height: 1.35,
+                ),
+              ),
             ],
           ),
         ),
@@ -551,9 +698,7 @@ class DailyMomentStep extends StatelessWidget {
   Widget build(BuildContext context) {
     const labels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     final todayIndex = DateTime.now().weekday % 7; // Sunday == 0
-    final ordered = [
-      for (var i = 0; i < 7; i++) labels[(todayIndex + i) % 7],
-    ];
+    final ordered = [for (var i = 0; i < 7; i++) labels[(todayIndex + i) % 7]];
 
     return SafeArea(
       child: Padding(
@@ -580,7 +725,10 @@ class DailyMomentStep extends StatelessWidget {
             Reveal(
               delay: const Duration(milliseconds: 1280),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(20),
@@ -595,8 +743,12 @@ class DailyMomentStep extends StatelessWidget {
                             ordered[i],
                             style: AppText.sans(
                               size: 12.5,
-                              color: i == 0 ? AppColors.ink : AppColors.inkFaint,
-                              weight: i == 0 ? FontWeight.w700 : FontWeight.w400,
+                              color: i == 0
+                                  ? AppColors.ink
+                                  : AppColors.inkFaint,
+                              weight: i == 0
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -608,8 +760,11 @@ class DailyMomentStep extends StatelessWidget {
                               color: i == 0 ? AppColors.gold : AppColors.chip,
                             ),
                             child: i == 0
-                                ? const Icon(Icons.check,
-                                    size: 15, color: AppColors.white)
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 15,
+                                    color: AppColors.white,
+                                  )
                                 : null,
                           ),
                         ],
@@ -657,16 +812,17 @@ class _LoadingStepState extends State<LoadingStep>
     'Preparing your daily plan...',
   ];
 
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 5200),
-  )..addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        Future.delayed(const Duration(milliseconds: 420), () {
-          if (mounted) widget.onNext();
-        });
-      }
-    });
+  late final AnimationController _controller =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 5200),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          Future.delayed(const Duration(milliseconds: 420), () {
+            if (mounted) widget.onNext();
+          });
+        }
+      });
 
   @override
   void initState() {
@@ -689,8 +845,10 @@ class _LoadingStepState extends State<LoadingStep>
           animation: _controller,
           builder: (context, _) {
             final value = Curves.easeInOut.transform(_controller.value);
-            final captionIndex =
-                (value * _captions.length).floor().clamp(0, _captions.length - 1);
+            final captionIndex = (value * _captions.length).floor().clamp(
+              0,
+              _captions.length - 1,
+            );
             const dots = 6;
             final filled = (value * dots).floor();
 
@@ -711,7 +869,9 @@ class _LoadingStepState extends State<LoadingStep>
                           width: 26,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: i < filled ? AppColors.gold : AppColors.track,
+                            color: i < filled
+                                ? AppColors.gold
+                                : AppColors.track,
                           ),
                           child: Icon(
                             Icons.check,
@@ -771,12 +931,14 @@ class PlanDateStep extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: AppText.sans(
-                          size: 14.5,
-                          color: AppColors.ink,
-                          weight: FontWeight.w700,
-                        )),
+                    Text(
+                      title,
+                      style: AppText.sans(
+                        size: 14.5,
+                        color: AppColors.ink,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 5),
                     Text(body, style: AppText.sans(size: 13.5)),
                   ],
@@ -792,7 +954,9 @@ class PlanDateStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final target = DateTime.now().add(const Duration(days: 30));
-    final goal = data.goals.isEmpty ? 'Get a Quran verse every day' : data.goals.first;
+    final goal = data.goals.isEmpty
+        ? 'Get a Quran verse every day'
+        : data.goals.first;
 
     return SafeArea(
       child: Padding(
@@ -818,7 +982,9 @@ class PlanDateStep extends StatelessWidget {
                             const SizedBox(height: 14),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 8),
+                                horizontal: 18,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.goldSoft,
                                 borderRadius: BorderRadius.circular(10),
@@ -836,14 +1002,20 @@ class PlanDateStep extends StatelessWidget {
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.chip,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Text('📖  $goal',
-                                  style: AppText.sans(
-                                      size: 14, color: AppColors.ink)),
+                              child: Text(
+                                '📖  $goal',
+                                style: AppText.sans(
+                                  size: 14,
+                                  color: AppColors.ink,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -861,21 +1033,32 @@ class PlanDateStep extends StatelessWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: Text("How we'll get you there:",
-                          style: AppText.sans(size: 16, color: AppColors.ink)),
+                      child: Text(
+                        "How we'll get you there:",
+                        style: AppText.sans(size: 16, color: AppColors.ink),
+                      ),
                     ),
-                    _row('✍️', 'A verse every day.',
-                        'Start with ayahs chosen for your journey, plus gentle '
-                        'reminders that bring you back.',
-                        tilt: -1.6),
-                    _row('🧩', "Your verse where you'll see it.",
-                        'Turn your home screen into a quiet place for daily '
-                        "Qur'an and du'a.",
-                        tilt: 1.6),
-                    _row('🙌', 'Join believers starting with the Quran.',
-                        "You're not alone. Thousands start their day with the "
-                        'words of Allah.',
-                        tilt: -1.6),
+                    _row(
+                      '✍️',
+                      'A verse every day.',
+                      'Start with ayahs chosen for your journey, plus gentle '
+                          'reminders that bring you back.',
+                      tilt: -1.6,
+                    ),
+                    _row(
+                      '🧩',
+                      "Your verse where you'll see it.",
+                      'Turn your home screen into a quiet place for daily '
+                          "Qur'an and du'a.",
+                      tilt: 1.6,
+                    ),
+                    _row(
+                      '🙌',
+                      'Join believers starting with the Quran.',
+                      "You're not alone. Thousands start their day with the "
+                          'words of Allah.',
+                      tilt: -1.6,
+                    ),
                   ],
                 ),
               ),
@@ -925,12 +1108,14 @@ class SnapshotStep extends StatelessWidget {
                 Text(emoji, style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(title,
-                      style: AppText.sans(
-                        size: 15,
-                        color: AppColors.ink,
-                        weight: FontWeight.w700,
-                      )),
+                  child: Text(
+                    title,
+                    style: AppText.sans(
+                      size: 15,
+                      color: AppColors.ink,
+                      weight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -943,10 +1128,14 @@ class SnapshotStep extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('low',
-                      style: AppText.sans(size: 11, color: AppColors.inkFaint)),
-                  Text('high',
-                      style: AppText.sans(size: 11, color: AppColors.inkFaint)),
+                  Text(
+                    'low',
+                    style: AppText.sans(size: 11, color: AppColors.inkFaint),
+                  ),
+                  Text(
+                    'high',
+                    style: AppText.sans(size: 11, color: AppColors.inkFaint),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -1097,11 +1286,7 @@ class _BarState extends State<_Bar> {
 // ---------------------------------------------------------------------------
 
 class ReminderTimeStep extends StatefulWidget {
-  const ReminderTimeStep({
-    super.key,
-    required this.data,
-    required this.onNext,
-  });
+  const ReminderTimeStep({super.key, required this.data, required this.onNext});
 
   final OnboardingData data;
   final VoidCallback onNext;
@@ -1164,19 +1349,22 @@ class _ReminderTimeStepState extends State<ReminderTimeStep> {
               onTap: () => _pick(isStart: isStart),
               borderRadius: BorderRadius.circular(20),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_formatHour(hour),
-                        style: AppText.sans(
-                          size: 17,
-                          color: AppColors.ink,
-                          weight: FontWeight.w600,
-                        )),
-                    Icon(Icons.schedule,
-                        size: 20, color: AppColors.inkSoft),
+                    Text(
+                      _formatHour(hour),
+                      style: AppText.sans(
+                        size: 17,
+                        color: AppColors.ink,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                    Icon(Icons.schedule, size: 20, color: AppColors.inkSoft),
                   ],
                 ),
               ),
@@ -1214,10 +1402,16 @@ class _ReminderTimeStepState extends State<ReminderTimeStep> {
                         style: AppText.sans(size: 15),
                       ),
                     ),
-                    _timeField('Start at', widget.data.reminderStartHour,
-                        isStart: true),
-                    _timeField('End at', widget.data.reminderEndHour,
-                        isStart: false),
+                    _timeField(
+                      'Start at',
+                      widget.data.reminderStartHour,
+                      isStart: true,
+                    ),
+                    _timeField(
+                      'End at',
+                      widget.data.reminderEndHour,
+                      isStart: false,
+                    ),
                   ],
                 ),
               ),
