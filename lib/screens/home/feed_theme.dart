@@ -41,8 +41,8 @@ class FeedText {
 
   /// Small, muted, warm-gray — and serif, to sit quietly under the editorial
   /// translation rather than reading as UI chrome.
-  static TextStyle reference() => GoogleFonts.playfairDisplay(
-        fontSize: 13,
+  static TextStyle reference({double size = 13}) => GoogleFonts.playfairDisplay(
+        fontSize: size,
         color: FeedColors.inkSoft,
         fontWeight: FontWeight.w500,
         fontStyle: FontStyle.italic,

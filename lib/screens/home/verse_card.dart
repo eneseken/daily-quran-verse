@@ -83,6 +83,10 @@ class VerseFeedShell extends StatelessWidget {
 
 /// One page of the feed — just the verse itself, since the surrounding
 /// chrome lives in [VerseFeedShell] and does not scroll with it.
+///
+/// Ayah lengths vary enormously (2:282 is roughly forty times 108:1), so the
+/// type is sized to the page rather than fixed: the largest scale at which
+/// Arabic, translation and reference all still fit is measured and used.
 class VersePage extends StatelessWidget {
   const VersePage({
     super.key,
@@ -93,40 +97,163 @@ class VersePage extends StatelessWidget {
   final QuranVerse verse;
   final String languageCode;
 
+  /// Sizes for a short ayah, scaled down from here as the text grows.
+  /// Public so tests can assert against the actual values used.
+  static const arabicSize = 30.0;
+  static const quoteSize = 27.0;
+  static const referenceSize = 13.0;
+  static const _arabicGap = 30.0;
+  static const _referenceGap = 18.0;
+
+  /// The Arabic is set narrower than the translation, as in the design.
+  static const _arabicWidthFactor = 0.85;
+
+  /// Past this the verse stops being comfortably readable, so the longest
+  /// ayahs settle here rather than shrinking into illegibility.
+  static const minScale = 0.45;
+
+  double _heightAt(
+    double scale,
+    double maxWidth,
+    String translation,
+    TextScaler scaler,
+  ) {
+    return _measure(
+          verse.arabicText,
+          FeedText.arabic(size: arabicSize * scale),
+          maxWidth * _arabicWidthFactor,
+          scaler,
+          TextDirection.rtl,
+        ) +
+        _arabicGap * scale +
+        _measure(
+          translation,
+          FeedText.quote(size: quoteSize * scale),
+          maxWidth,
+          scaler,
+          TextDirection.ltr,
+        ) +
+        _referenceGap * scale +
+        _measure(
+          '— ${verse.reference}',
+          FeedText.reference(size: referenceSize * scale),
+          maxWidth,
+          scaler,
+          TextDirection.ltr,
+        );
+  }
+
+  static double _measure(
+    String text,
+    TextStyle style,
+    double maxWidth,
+    TextScaler scaler,
+    TextDirection direction,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textAlign: TextAlign.center,
+      textScaler: scaler,
+    )..layout(maxWidth: maxWidth);
+    return painter.size.height;
+  }
+
+  /// The scale to render at, and whether that scale still overflows the
+  /// available height even at the readability floor.
+  ///
+  /// The floor exists so long ayahs stay legible rather than shrinking to
+  /// nothing — but 2:282 (the longest ayah in the Quran) on the smallest
+  /// supported phones can still be taller than one page even at that floor.
+  /// [overflows] tells the caller to fall back to letting the page scroll
+  /// for that one rare combination, rather than clipping or violating the
+  /// floor.
+  (double scale, bool overflows) _fitScale(
+    BoxConstraints constraints,
+    String translation,
+    TextScaler scaler,
+  ) {
+    if (!constraints.hasBoundedHeight || constraints.maxWidth <= 0) {
+      return (1, false);
+    }
+
+    final available = constraints.maxHeight;
+    if (_heightAt(1, constraints.maxWidth, translation, scaler) <= available) {
+      return (1, false);
+    }
+
+    // Ten halvings land within ~0.05% of the true crossover — far finer than
+    // a reader could notice, and cheap enough to redo on every layout.
+    var fits = minScale;
+    var tooBig = 1.0;
+    for (var i = 0; i < 10; i++) {
+      final mid = (fits + tooBig) / 2;
+      if (_heightAt(mid, constraints.maxWidth, translation, scaler) <=
+          available) {
+        fits = mid;
+      } else {
+        tooBig = mid;
+      }
+    }
+
+    final floorFits =
+        _heightAt(minScale, constraints.maxWidth, translation, scaler) <=
+            available;
+    return (fits, !floorFits);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final translation = verse.textFor(languageCode);
+    final scaler = MediaQuery.textScalerOf(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Center(
-        child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
-          child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final (scale, overflows) =
+              _fitScale(constraints, translation, scaler);
+
+          final column = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               FractionallySizedBox(
-                widthFactor: 0.85,
+                widthFactor: _arabicWidthFactor,
                 child: Text(
                   verse.arabicText,
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
-                  style: FeedText.arabic(),
+                  style: FeedText.arabic(size: arabicSize * scale),
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: _arabicGap * scale),
               Text(
-                verse.textFor(languageCode),
+                translation,
                 textAlign: TextAlign.center,
-                style: FeedText.quote(),
+                style: FeedText.quote(size: quoteSize * scale),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: _referenceGap * scale),
               Text(
                 '— ${verse.reference}',
                 textAlign: TextAlign.center,
-                style: FeedText.reference(),
+                style: FeedText.reference(size: referenceSize * scale),
               ),
             ],
-          ),
-        ),
+          );
+
+          if (!overflows) return Center(child: column);
+
+          // Escape valve for that one pathological case: scrolling inside a
+          // vertical PageView page is otherwise avoided (drag would be
+          // ambiguous between paging and scrolling), but a few extra pixels
+          // of scroll on the single longest ayah beats clipped text.
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(child: column),
+            ),
+          );
+        },
       ),
     );
   }
