@@ -39,7 +39,7 @@ class SettingsSheet extends StatelessWidget {
         margin: const EdgeInsets.all(12),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF171715),
+          color: FeedColors.sheet,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: FeedColors.chipBorder),
         ),
@@ -47,7 +47,10 @@ class SettingsSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Verse language', style: FeedText.label(color: FeedColors.ink)),
+            Text(
+              'Verse language',
+              style: FeedText.label(color: FeedColors.ink),
+            ),
             const SizedBox(height: 14),
             for (final entry in supportedLanguages.entries)
               Padding(
@@ -62,7 +65,7 @@ class SettingsSheet extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 6),
-            Divider(color: Colors.white.withValues(alpha: 0.08)),
+            Divider(color: FeedColors.chipBorder),
             const SizedBox(height: 6),
             _SignOutRow(
               onTap: () {
@@ -104,14 +107,12 @@ class _LanguageRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: FeedText.label(color: FeedColors.ink).copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: FeedText.label(
+                    color: FeedColors.ink,
+                  ).copyWith(fontSize: 15, fontWeight: FontWeight.w500),
                 ),
               ),
-              if (selected)
-                const Icon(Icons.check, size: 18, color: FeedColors.gold),
+              if (selected) Icon(Icons.check, size: 18, color: FeedColors.gold),
             ],
           ),
         ),
@@ -137,9 +138,12 @@ class _SignOutRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
-              const Icon(Icons.logout, size: 18, color: FeedColors.inkSoft),
+              Icon(Icons.logout, size: 18, color: FeedColors.inkSoft),
               const SizedBox(width: 12),
-              Text('Sign out', style: FeedText.label(color: FeedColors.inkSoft)),
+              Text(
+                'Sign out',
+                style: FeedText.label(color: FeedColors.inkSoft),
+              ),
             ],
           ),
         ),

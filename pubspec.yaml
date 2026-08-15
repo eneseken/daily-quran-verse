@@ -1,4 +1,4 @@
-name: muslim
+﻿name: muslim
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -41,6 +41,7 @@ dependencies:
   just_audio: ^0.10.6
   purchases_flutter: ^10.9.0
   url_launcher: ^6.3.2
+  lottie: ^3.3.1
 
 dev_dependencies:
   flutter_test:
@@ -72,19 +73,18 @@ flutter_launcher_icons:
 
 # Native splash — the screen the OS shows before the Flutter engine has drawn
 # its first frame, so it can only be a solid color plus a static image (no
-# animation, no gradient photo). Same crescent as the app icon, recolored ink
-# on cream for light mode since the icon's white moon disappears on a light
-# background; colors match AppPalette in lib/core/theme.dart.
+# animation, no gradient photo). Uses the standalone crescent asset, recolored
+# per theme; colors match AppPalette in lib/core/theme.dart.
 flutter_native_splash:
   color: "#F1EDE5"
   color_dark: "#272624"
-  image: assets/icon/moon_ink.png
-  image_dark: assets/icon/foreground.png
+  image: assets/splash/hilal_splash_light.png
+  image_dark: assets/splash/hilal_splash_dark.png
   android_12:
     color: "#F1EDE5"
     color_dark: "#272624"
-    image: assets/icon/moon_ink.png
-    image_dark: assets/icon/foreground.png
+    image: assets/splash/hilal_splash_light.png
+    image_dark: assets/splash/hilal_splash_dark.png
   android: true
   ios: true
   web: false
@@ -104,6 +104,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/themess/1.png
+    - assets/animation/gift.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

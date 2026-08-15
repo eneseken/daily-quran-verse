@@ -1,57 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// The verse feed is a fixed "reading mode" — always dark, like the
-/// reference design — independent of the app-wide light/dark palette used
-/// elsewhere (onboarding, auth).
+import '../../core/theme.dart';
+
+/// Feed typography stays distinct, but its colors follow the app-wide
+/// light/dark palette so home, loading, and settings match onboarding.
 class FeedColors {
   const FeedColors._();
 
-  /// Warm charcoal / espresso — the feed's fixed "reading mode" backdrop.
-  static const bg = Color(0xFF252320);
-  static const chip = Color(0x1FFFFFFF);
-  static const chipBorder = Color(0x24FFFFFF);
-
-  /// Warm ivory ink used for the dominant Arabic and translation text.
-  static const ink = Color(0xFFF4EFE7);
-  static const inkSoft = Color(0xFFA8A49C);
-  static const inkFaint = Color(0xFF6E6A63);
-  static const gold = Color(0xFFD5A44F);
-  static const liked = Color(0xFFE0655A);
+  static Color get bg => AppColors.bg;
+  static Color get chip =>
+      AppColors.isDark ? AppColors.chip : AppColors.bg.withValues(alpha: 0.5);
+  static Color get chipBorder => AppColors.track;
+  static Color get ink => AppColors.ink;
+  static Color get inkSoft => AppColors.inkSoft;
+  static Color get inkFaint => AppColors.inkFaint;
+  static Color get gold => AppColors.gold;
+  static Color get liked => AppColors.error;
+  static Color get track => AppColors.track;
+  static Color get sheet => AppColors.surface;
 }
 
 class FeedText {
   const FeedText._();
 
-  /// Large, warm-ivory, generously leaded — the visually dominant element on
-  /// the page, sitting above the translation.
   static TextStyle arabic({double size = 30}) => GoogleFonts.amiri(
-        fontSize: size,
-        color: FeedColors.ink,
-        fontWeight: FontWeight.w600,
-        height: 2.0,
-      );
+    fontSize: size,
+    color: FeedColors.ink,
+    fontWeight: FontWeight.w600,
+    height: 2.0,
+  );
 
   static TextStyle quote({double size = 27}) => GoogleFonts.playfairDisplay(
-        fontSize: size,
-        color: FeedColors.ink,
-        fontWeight: FontWeight.w700,
-        height: 1.38,
-      );
+    fontSize: size,
+    color: FeedColors.ink,
+    fontWeight: FontWeight.w700,
+    height: 1.38,
+  );
 
-  /// Small, muted, warm-gray — and serif, to sit quietly under the editorial
-  /// translation rather than reading as UI chrome.
   static TextStyle reference({double size = 13}) => GoogleFonts.playfairDisplay(
-        fontSize: size,
-        color: FeedColors.inkSoft,
-        fontWeight: FontWeight.w500,
-        fontStyle: FontStyle.italic,
-      );
+    fontSize: size,
+    color: FeedColors.inkSoft,
+    fontWeight: FontWeight.w500,
+    fontStyle: FontStyle.italic,
+  );
 
   static TextStyle label({Color? color}) => GoogleFonts.inter(
-        fontSize: 12.5,
-        color: color ?? FeedColors.ink,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.2,
-      );
+    fontSize: 12.5,
+    color: color ?? FeedColors.ink,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.2,
+  );
 }

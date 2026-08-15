@@ -186,6 +186,53 @@ class _StampProofCardState extends State<_StampProofCard>
   }
 }
 
+class _DelayedStampIn extends StatefulWidget {
+  const _DelayedStampIn({required this.delay, required this.child});
+
+  final Duration delay;
+  final Widget child;
+
+  @override
+  State<_DelayedStampIn> createState() => _DelayedStampInState();
+}
+
+class _DelayedStampInState extends State<_DelayedStampIn> {
+  bool _visible = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.delay, () {
+      if (mounted) setState(() => _visible = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: _visible ? 1 : 0),
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        final opacity = value.clamp(0.0, 1.0);
+        final scale = value == 0 ? 1.18 : 0.88 + value * 0.12;
+        return Opacity(
+          opacity: opacity,
+          child: Transform.scale(scale: scale, child: child),
+        );
+      },
+      child: IgnorePointer(ignoring: !_visible, child: widget.child),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 1. Welcome
 // ---------------------------------------------------------------------------
@@ -205,22 +252,7 @@ class WelcomeStep extends StatelessWidget {
         ),
       ),
       child: DecoratedBox(
-        // A soft scrim over the photo — the sky art alone doesn't leave
-        // reliable contrast for the white title/CTA at every crop, top and
-        // bottom get just enough darkening to keep them readable.
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.28),
-              Colors.transparent,
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.45),
-            ],
-            stops: const [0.0, 0.3, 0.6, 1.0],
-          ),
-        ),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5)),
         child: SafeArea(
           child: Padding(
             padding: kPagePadding,
@@ -253,7 +285,7 @@ class WelcomeStep extends StatelessWidget {
                   ),
                 ),
                 const Spacer(flex: 4),
-                DelayedFade(
+                _DelayedStampIn(
                   delay: const Duration(milliseconds: 1250),
                   child: LightButton(
                     label: 'Begin my journey',

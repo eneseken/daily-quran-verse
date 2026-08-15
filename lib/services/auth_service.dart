@@ -77,4 +77,17 @@ class AuthService {
         .maybeSingle();
     return row?['onboarding_completed'] == true;
   }
+
+  /// The subset of `profiles` the account screen displays — both columns
+  /// were already collected during onboarding.
+  Future<({String? name, String? sex})> fetchProfileSummary() async {
+    final id = user?.id;
+    if (id == null) return (name: null, sex: null);
+    final row = await _client
+        .from('profiles')
+        .select('name, sex')
+        .eq('id', id)
+        .maybeSingle();
+    return (name: row?['name'] as String?, sex: row?['sex'] as String?);
+  }
 }

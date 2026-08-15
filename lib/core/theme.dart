@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// One full set of theme colors. `AppColors` swaps between [light] and [dark]
-/// instances at runtime — see [AppColors.apply].
+/// instances at runtime Ã¢â‚¬â€ see [AppColors.apply].
 class AppPalette {
   const AppPalette({
     required this.bg,
@@ -25,7 +26,7 @@ class AppPalette {
   final Color surface;
   final Color surfaceSoft;
 
-  /// Small elevated chip sitting on top of a card — pure white on the cream
+  /// Small elevated chip sitting on top of a card Ã¢â‚¬â€ pure white on the cream
   /// theme, a lighter-than-surface tone on the dark one.
   final Color chip;
 
@@ -43,7 +44,7 @@ class AppPalette {
   final Color track;
   final Color error;
 
-  /// Warm cream paper, muted clay surfaces, near-black ink — the reference
+  /// Warm cream paper, muted clay surfaces, near-black ink Ã¢â‚¬â€ the reference
   /// design as given.
   static const light = AppPalette(
     bg: Color(0xFFF1EDE5),
@@ -82,7 +83,7 @@ class AppPalette {
 
 /// Palette accessors used throughout the app. Backed by a mutable current
 /// [AppPalette] so the whole tree can flip between light and dark without
-/// threading a `BuildContext` through every helper — call [apply] once from
+/// threading a `BuildContext` through every helper Ã¢â‚¬â€ call [apply] once from
 /// the root widget whenever the desired brightness changes, then rebuild.
 class AppColors {
   const AppColors._();
@@ -109,17 +110,104 @@ class AppColors {
   static Color get track => _palette.track;
   static Color get error => _palette.error;
 
-  /// Literal white — used only for spots that stay bright regardless of theme
+  /// Literal white Ã¢â‚¬â€ used only for spots that stay bright regardless of theme
   /// (the welcome screen's CTA over its fixed photo, checkmarks on gold).
   static const white = Color(0xFFFFFFFF);
 }
 
+const appThemePreferenceKey = 'app_theme_preference';
+
+enum AppThemeMode { system, light, dark }
+
+AppThemeMode parseAppThemeMode(String? value) {
+  for (final mode in AppThemeMode.values) {
+    if (mode.name == value) return mode;
+  }
+  return AppThemeMode.system;
+}
+
+String appThemeModeLabel(AppThemeMode mode) {
+  switch (mode) {
+    case AppThemeMode.system:
+      return 'System';
+    case AppThemeMode.light:
+      return 'Light';
+    case AppThemeMode.dark:
+      return 'Dark';
+  }
+}
+
+bool resolveAppThemeIsDark(AppThemeMode mode) {
+  switch (mode) {
+    case AppThemeMode.system:
+      return computeSystemIsDark();
+    case AppThemeMode.light:
+      return false;
+    case AppThemeMode.dark:
+      return true;
+  }
+}
+
+class AppThemeController extends ChangeNotifier {
+  AppThemeController._();
+
+  static final AppThemeController instance = AppThemeController._();
+
+  AppThemeMode _mode = AppThemeMode.system;
+
+  AppThemeMode get mode => _mode;
+
+  Future<void> restore() async {
+    final prefs = await SharedPreferences.getInstance();
+    _mode = parseAppThemeMode(prefs.getString(appThemePreferenceKey));
+    _apply(notify: false);
+  }
+
+  Future<void> setMode(AppThemeMode mode) async {
+    _mode = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(appThemePreferenceKey, mode.name);
+    _apply(notify: true);
+  }
+
+  void syncSystem() {
+    if (_mode != AppThemeMode.system) return;
+    final dark = resolveAppThemeIsDark(_mode);
+    if (dark == AppColors.isDark) {
+      syncStatusBarStyle(dark);
+      return;
+    }
+    AppColors.apply(dark);
+    syncStatusBarStyle(dark);
+    notifyListeners();
+  }
+
+  void _apply({required bool notify}) {
+    final dark = resolveAppThemeIsDark(_mode);
+    AppColors.apply(dark);
+    syncStatusBarStyle(dark);
+    if (notify) notifyListeners();
+  }
+}
+
+class AppThemeScope extends InheritedNotifier<AppThemeController> {
+  const AppThemeScope({
+    super.key,
+    required AppThemeController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static void watch(BuildContext context) {
+    context.dependOnInheritedWidgetOfExactType<AppThemeScope>();
+  }
+}
+
 /// True when the system theme is dark, or when it's evening/night locally
-/// (19:00–06:00) — either is reason enough to open onboarding in dark mode.
+/// (19:00Ã¢â‚¬â€œ06:00) Ã¢â‚¬â€ either is reason enough to open onboarding in dark mode.
 bool computeSystemIsDark() {
   final systemDark =
       WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-          Brightness.dark;
+      Brightness.dark;
   final hour = DateTime.now().hour;
   final isEvening = hour >= 19 || hour < 6;
   return systemDark || isEvening;
@@ -135,7 +223,7 @@ void syncStatusBarStyle(bool dark) {
   );
 }
 
-/// Serif for headings, grotesque for everything else — as in the design.
+/// Serif for headings, grotesque for everything else Ã¢â‚¬â€ as in the design.
 class AppText {
   const AppText._();
 
@@ -145,14 +233,13 @@ class AppText {
     FontWeight weight = FontWeight.w700,
     double height = 1.24,
     FontStyle? style,
-  }) =>
-      GoogleFonts.playfairDisplay(
-        fontSize: size,
-        color: color ?? AppColors.ink,
-        fontWeight: weight,
-        height: height,
-        fontStyle: style,
-      );
+  }) => GoogleFonts.playfairDisplay(
+    fontSize: size,
+    color: color ?? AppColors.ink,
+    fontWeight: weight,
+    height: height,
+    fontStyle: style,
+  );
 
   static TextStyle sans({
     double size = 16,
@@ -160,37 +247,35 @@ class AppText {
     FontWeight weight = FontWeight.w400,
     double height = 1.5,
     double? spacing,
-  }) =>
-      GoogleFonts.inter(
-        fontSize: size,
-        color: color ?? AppColors.inkSoft,
-        fontWeight: weight,
-        height: height,
-        letterSpacing: spacing,
-      );
+  }) => GoogleFonts.inter(
+    fontSize: size,
+    color: color ?? AppColors.inkSoft,
+    fontWeight: weight,
+    height: height,
+    letterSpacing: spacing,
+  );
 
   /// Small all-caps label used above summary cards.
   static TextStyle overline({Color? color}) => GoogleFonts.inter(
-        fontSize: 11,
-        color: color ?? AppColors.gold,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1.1,
-        height: 1.2,
-      );
+    fontSize: 11,
+    color: color ?? AppColors.gold,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.1,
+    height: 1.2,
+  );
 
-  /// Chunky rounded numeral for the streak count on the sun badge — reads
+  /// Chunky rounded numeral for the streak count on the sun badge Ã¢â‚¬â€ reads
   /// friendlier and punchier at a glance than the serif heading font.
   static TextStyle numeral({
     double size = 34,
     Color? color,
     FontWeight weight = FontWeight.w700,
-  }) =>
-      GoogleFonts.baloo2(
-        fontSize: size,
-        color: color ?? AppColors.ink,
-        fontWeight: weight,
-        height: 1.0,
-      );
+  }) => GoogleFonts.baloo2(
+    fontSize: size,
+    color: color ?? AppColors.ink,
+    fontWeight: weight,
+    height: 1.0,
+  );
 }
 
 /// Splits `**highlighted**` runs out of a string so headings can mix ink and
@@ -214,10 +299,9 @@ ThemeData buildAppTheme() {
       surface: AppColors.bg,
       onSurface: AppColors.ink,
     ),
-    textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
-      bodyColor: AppColors.ink,
-      displayColor: AppColors.ink,
-    ),
+    textTheme: GoogleFonts.interTextTheme(
+      base.textTheme,
+    ).apply(bodyColor: AppColors.ink, displayColor: AppColors.ink),
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
   );

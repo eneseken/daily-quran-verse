@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../models/quran_verse.dart';
 import '../../services/recitation_service.dart';
@@ -19,6 +22,7 @@ class VerseFeedShell extends StatelessWidget {
     required this.onShare,
     required this.onOpenSettings,
     required this.onTogglePlayback,
+    this.onOpenGift,
   });
 
   final QuranVerse verse;
@@ -30,6 +34,7 @@ class VerseFeedShell extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onOpenSettings;
   final VoidCallback onTogglePlayback;
+  final VoidCallback? onOpenGift;
 
   @override
   Widget build(BuildContext context) {
@@ -38,41 +43,40 @@ class VerseFeedShell extends StatelessWidget {
     return Container(
       color: FeedColors.bg,
       child: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: Row(
-                children: [
-                  // Balances the settings button on the right so the
-                  // indicator below reads as truly centered.
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: Center(
-                      child: _TopIndicator(
-                        label: '${verse.ayahNumber}/$ayahCountInSurah',
-                        progress: progress,
+            Column(
+              children: [
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  child: Row(
+                    children: [
+                      _ProfileFab(onTap: onOpenSettings),
+                      Expanded(
+                        child: Center(
+                          child: _TopIndicator(
+                            label: '${verse.ayahNumber}/$ayahCountInSurah',
+                            progress: progress,
+                          ),
+                        ),
                       ),
-                    ),
+                      _GiftButton(onTap: onOpenGift ?? () {}),
+                    ],
                   ),
-                  _CircleButton(
-                    icon: Icons.person_outline,
-                    onTap: onOpenSettings,
+                ),
+                Expanded(child: feed),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: _VerseActions(
+                    liked: liked,
+                    recitation: recitation,
+                    onShare: onShare,
+                    onToggleLike: onToggleLike,
+                    onTogglePlayback: onTogglePlayback,
                   ),
-                ],
-              ),
-            ),
-            Expanded(child: feed),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: _VerseActions(
-                liked: liked,
-                recitation: recitation,
-                onShare: onShare,
-                onToggleLike: onToggleLike,
-                onTogglePlayback: onTogglePlayback,
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -81,18 +85,112 @@ class VerseFeedShell extends StatelessWidget {
   }
 }
 
-/// One page of the feed — just the verse itself, since the surrounding
+class _GiftButton extends StatefulWidget {
+  const _GiftButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_GiftButton> createState() => _GiftButtonState();
+}
+
+class _GiftButtonState extends State<_GiftButton>
+    with SingleTickerProviderStateMixin {
+  static const _asset = 'assets/animation/gift.json';
+
+  late final AnimationController _controller = AnimationController(vsync: this)
+    ..addStatusListener((status) {
+      if (status == AnimationStatus.completed) _controller.value = 0;
+    });
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _playOnce());
+  }
+
+  void _playOnce() {
+    if (!_controller.isAnimating) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: widget.onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          height: 52,
+          width: 52,
+          child: Lottie.asset(
+            _asset,
+            controller: _controller,
+            fit: BoxFit.contain,
+            repeat: false,
+            onLoaded: (composition) =>
+                _controller.duration = composition.duration,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileFab extends StatelessWidget {
+  const _ProfileFab({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: FeedColors.gold,
+      shape: const CircleBorder(),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          height: 52,
+          width: 52,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: 0,
+                child: Icon(
+                  Icons.person_outline,
+                  size: 28,
+                  color: FeedColors.bg,
+                ),
+              ),
+              Icon(Icons.person, size: 28, color: FeedColors.bg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One page of the feed ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â just the verse itself, since the surrounding
 /// chrome lives in [VerseFeedShell] and does not scroll with it.
 ///
 /// Ayah lengths vary enormously (2:282 is roughly forty times 108:1), so the
 /// type is sized to the page rather than fixed: the largest scale at which
 /// Arabic, translation and reference all still fit is measured and used.
 class VersePage extends StatelessWidget {
-  const VersePage({
-    super.key,
-    required this.verse,
-    required this.languageCode,
-  });
+  const VersePage({super.key, required this.verse, required this.languageCode});
 
   final QuranVerse verse;
   final String languageCode;
@@ -135,7 +233,7 @@ class VersePage extends StatelessWidget {
         ) +
         _referenceGap * scale +
         _measure(
-          '— ${verse.reference}',
+          '\u2014 ${verse.reference}',
           FeedText.reference(size: referenceSize * scale),
           maxWidth,
           scaler,
@@ -163,7 +261,7 @@ class VersePage extends StatelessWidget {
   /// available height even at the readability floor.
   ///
   /// The floor exists so long ayahs stay legible rather than shrinking to
-  /// nothing — but 2:282 (the longest ayah in the Quran) on the smallest
+  /// nothing ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â but 2:282 (the longest ayah in the Quran) on the smallest
   /// supported phones can still be taller than one page even at that floor.
   /// [overflows] tells the caller to fall back to letting the page scroll
   /// for that one rare combination, rather than clipping or violating the
@@ -182,7 +280,7 @@ class VersePage extends StatelessWidget {
       return (1, false);
     }
 
-    // Ten halvings land within ~0.05% of the true crossover — far finer than
+    // Ten halvings land within ~0.05% of the true crossover ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â far finer than
     // a reader could notice, and cheap enough to redo on every layout.
     var fits = minScale;
     var tooBig = 1.0;
@@ -198,7 +296,7 @@ class VersePage extends StatelessWidget {
 
     final floorFits =
         _heightAt(minScale, constraints.maxWidth, translation, scaler) <=
-            available;
+        available;
     return (fits, !floorFits);
   }
 
@@ -211,8 +309,11 @@ class VersePage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 22),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final (scale, overflows) =
-              _fitScale(constraints, translation, scaler);
+          final (scale, overflows) = _fitScale(
+            constraints,
+            translation,
+            scaler,
+          );
 
           final column = Column(
             mainAxisSize: MainAxisSize.min,
@@ -234,7 +335,7 @@ class VersePage extends StatelessWidget {
               ),
               SizedBox(height: _referenceGap * scale),
               Text(
-                '— ${verse.reference}',
+                '\u2014 ${verse.reference}',
                 textAlign: TextAlign.center,
                 style: FeedText.reference(size: referenceSize * scale),
               ),
@@ -259,7 +360,7 @@ class VersePage extends StatelessWidget {
   }
 }
 
-/// Small, low-contrast "♡ 1/5 ───" readout centered above the verse — never
+/// Small, low-contrast "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ 1/5 ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬" readout centered above the verse ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â never
 /// competes with the Arabic and translation for attention.
 class _TopIndicator extends StatelessWidget {
   const _TopIndicator({required this.label, required this.progress});
@@ -269,32 +370,49 @@ class _TopIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.favorite_border, size: 13, color: FeedColors.inkFaint),
-        const SizedBox(width: 7),
-        Text(label, style: FeedText.label(color: FeedColors.inkSoft)),
-        const SizedBox(width: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: SizedBox(
-            width: 26,
-            height: 3,
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation(FeedColors.inkFaint),
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        color: FeedColors.chip,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: FeedColors.chipBorder),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.favorite, size: 16, color: FeedColors.gold),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: FeedText.label(
+                color: FeedColors.ink,
+              ).copyWith(fontSize: 13.5),
             ),
-          ),
+            const SizedBox(width: 9),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: SizedBox(
+                width: 46,
+                height: 6,
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  backgroundColor: FeedColors.track,
+                  valueColor: AlwaysStoppedAnimation(FeedColors.gold),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
 /// Recite, share and like, bottom center. Plain outline icons with no
-/// background — they read as actions floating over the verse, not as UI
+/// background ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â they read as actions floating over the verse, not as UI
 /// chrome.
 class _VerseActions extends StatelessWidget {
   const _VerseActions({
@@ -317,9 +435,9 @@ class _VerseActions extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _PlayButton(state: recitation, onTap: onTogglePlayback),
-        const SizedBox(width: 26),
+        const SizedBox(width: 32),
         _CircleButton(icon: Icons.ios_share, onTap: onShare),
-        const SizedBox(width: 26),
+        const SizedBox(width: 32),
         _LikeButton(liked: liked, onTap: onToggleLike),
       ],
     );
@@ -343,15 +461,15 @@ class _PlayButton extends StatelessWidget {
         onTap: state == RecitationState.loading ? null : onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          height: 40,
-          width: 40,
+          height: 52,
+          width: 52,
           child: state == RecitationState.loading
-              ? const Center(
+              ? Center(
                   child: SizedBox(
-                    height: 18,
-                    width: 18,
+                    height: 24,
+                    width: 24,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 2.4,
                       valueColor: AlwaysStoppedAnimation(FeedColors.ink),
                     ),
                   ),
@@ -360,7 +478,7 @@ class _PlayButton extends StatelessWidget {
                   state == RecitationState.playing
                       ? Icons.pause
                       : Icons.play_arrow,
-                  size: 22,
+                  size: 30,
                   color: FeedColors.ink,
                 ),
         ),
@@ -384,9 +502,9 @@ class _CircleButton extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          height: 40,
-          width: 40,
-          child: Icon(icon, size: 20, color: FeedColors.ink),
+          height: 52,
+          width: 52,
+          child: Icon(icon, size: 28, color: FeedColors.ink),
         ),
       ),
     );
@@ -413,15 +531,15 @@ class _LikeButtonState extends State<_LikeButton> {
         onTap: widget.onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          height: 40,
-          width: 40,
+          height: 52,
+          width: 52,
           child: AnimatedScale(
             scale: widget.liked ? 1.08 : 1.0,
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             child: Icon(
               widget.liked ? Icons.favorite : Icons.favorite_border,
-              size: 20,
+              size: 28,
               color: widget.liked ? FeedColors.liked : FeedColors.ink,
             ),
           ),

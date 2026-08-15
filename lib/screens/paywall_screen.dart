@@ -162,7 +162,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       backgroundColor: FeedColors.bg,
       body: SafeArea(
         child: _loading
-            ? const Center(child: BreathingLoader(glow: FeedColors.gold))
+            ? Center(child: BreathingLoader(glow: FeedColors.gold))
             : Column(
                 children: [
                   _CloseRow(onClose: _close),
@@ -179,8 +179,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 children: markup(
                                   'Keep the Quran **close, every day.**',
                                   FeedText.quote(size: 27),
-                                  FeedText.quote(size: 27)
-                                      .copyWith(color: FeedColors.gold),
+                                  FeedText.quote(
+                                    size: 27,
+                                  ).copyWith(color: FeedColors.gold),
                                 ),
                               ),
                             ),
@@ -250,7 +251,7 @@ class _CloseRow extends StatelessWidget {
             child: InkWell(
               onTap: onClose,
               customBorder: const CircleBorder(),
-              child: const SizedBox(
+              child: SizedBox(
                 height: 44,
                 width: 44,
                 child: Icon(Icons.close, size: 20, color: FeedColors.inkFaint),
@@ -339,7 +340,7 @@ class _PurchasePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(26, 14, 26, 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         // A hairline lifts the panel off the scrolling list without a hard
         // slab of colour.
         border: Border(top: BorderSide(color: FeedColors.chipBorder)),
@@ -362,7 +363,8 @@ class _PurchasePanel extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _PlanTile(
                   package: package,
-                  selected: identical(package, selected) ||
+                  selected:
+                      identical(package, selected) ||
                       package.identifier == selected?.identifier,
                   onTap: () => onSelect(package),
                 ),
@@ -406,12 +408,12 @@ class _PlanTile extends StatelessWidget {
 
   /// "Yearly" / "Monthly" rather than RevenueCat's raw identifiers.
   String get _title => switch (package.packageType) {
-        PackageType.annual => 'Yearly',
-        PackageType.monthly => 'Monthly',
-        PackageType.weekly => 'Weekly',
-        PackageType.lifetime => 'Lifetime',
-        _ => package.storeProduct.title,
-      };
+    PackageType.annual => 'Yearly',
+    PackageType.monthly => 'Monthly',
+    PackageType.weekly => 'Weekly',
+    PackageType.lifetime => 'Lifetime',
+    _ => package.storeProduct.title,
+  };
 
   String? get _perMonth {
     if (package.packageType != PackageType.annual) return null;
@@ -504,7 +506,7 @@ class _RadioDot extends StatelessWidget {
         ),
       ),
       child: selected
-          ? const Icon(Icons.check, size: 13, color: FeedColors.bg)
+          ? Icon(Icons.check, size: 13, color: FeedColors.bg)
           : null,
     );
   }
@@ -537,7 +539,7 @@ class _PaywallCta extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           child: Center(
             child: busy
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(

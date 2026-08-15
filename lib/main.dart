@@ -20,11 +20,9 @@ const _onboardingSeenKey = 'onboarding_seen';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Paint the very first frame with the right palette already applied, so
+  // Paint the very first frame with the saved palette already applied, so
   // there's no light-then-dark flash on launch.
-  final startDark = computeSystemIsDark();
-  AppColors.apply(startDark);
-  syncStatusBarStyle(startDark);
+  await AppThemeController.instance.restore();
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
@@ -38,8 +36,31 @@ Future<void> main() async {
   runApp(const MuslimApp());
 }
 
-class MuslimApp extends StatelessWidget {
+class MuslimApp extends StatefulWidget {
   const MuslimApp({super.key});
+
+  @override
+  State<MuslimApp> createState() => _MuslimAppState();
+}
+
+class _MuslimAppState extends State<MuslimApp> {
+  final AppThemeController _themeController = AppThemeController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeController.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _themeController.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +68,18 @@ class MuslimApp extends StatelessWidget {
       title: 'Daily Quran Verse',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      builder: (context, child) => AppThemeScope(
+        controller: _themeController,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: const RootGate(),
     );
   }
 }
 
 /// Decides what the user sees: onboarding, auth, or home. Also the single
-/// place watching for brightness changes — system dark mode or the evening
-/// window — and re-applying [AppColors] for the whole tree.
+/// place watching for brightness changes ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â system dark mode or the evening
+/// window ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â and re-applying [AppColors] for the whole tree.
 class RootGate extends StatefulWidget {
   const RootGate({super.key});
 
@@ -82,21 +107,16 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Re-checks system brightness / time of day, and if it flipped, applies
-  /// the new palette and rebuilds the whole tree.
+  /// Re-checks system brightness / time of day when Theme is set to System.
   void _syncBrightness() {
-    final dark = computeSystemIsDark();
-    if (dark == AppColors.isDark) return;
-    AppColors.apply(dark);
-    syncStatusBarStyle(dark);
-    if (mounted) setState(() {});
+    AppThemeController.instance.syncSystem();
   }
 
   @override
   void didChangePlatformBrightness() => _syncBrightness();
 
   /// Covers "opened the app in the evening" even when the OS setting itself
-  /// hasn't changed — re-checked every time the app comes back to the
+  /// hasn't changed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â re-checked every time the app comes back to the
   /// foreground.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -129,8 +149,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     return StreamBuilder<AuthState>(
       stream: AuthService.instance.onAuthStateChange,
       builder: (context, snapshot) {
-        final session =
-            snapshot.data?.session ?? AuthService.instance.session;
+        final session = snapshot.data?.session ?? AuthService.instance.session;
 
         if (session != null) return const _SignedIn();
 
@@ -157,7 +176,7 @@ class _SignedIn extends StatefulWidget {
 }
 
 class _SignedInState extends State<_SignedIn> {
-  /// Guards against showing the paywall twice — on a rebuild, or when
+  /// Guards against showing the paywall twice ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â on a rebuild, or when
   /// RevenueCat's entitlement callback lands after the first frame.
   bool _offerShown = false;
 
@@ -199,11 +218,10 @@ class _Splash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppThemeScope.watch(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Center(
-        child: BreathingLoader(glow: AppColors.gold),
-      ),
+      body: Center(child: BreathingLoader(glow: AppColors.gold)),
     );
   }
 }

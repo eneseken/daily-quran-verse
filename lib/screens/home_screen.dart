@@ -4,15 +4,17 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/theme.dart';
 import '../models/quran_verse.dart';
 import '../services/quran_service.dart';
 import '../services/recitation_service.dart';
 import '../widgets/breathing_loader.dart';
 import 'home/feed_theme.dart';
-import 'home/settings_sheet.dart';
 import 'home/verse_card.dart';
+import 'paywall_screen.dart';
+import 'profile_screen.dart';
 
-/// The main feed: one ayah per screen, scroll down for the next — an endless
+/// The main feed: one ayah per screen, scroll down for the next ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â an endless
 /// vertical reel through the whole Quran, starting at a random verse each
 /// time the app opens.
 ///
@@ -35,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _startOffset = 0;
   int _page = 0;
   bool _loading = true;
+  bool _showSwipeHint = true;
   String? _error;
   StreamSubscription<RecitationState>? _recitationSub;
 
@@ -103,29 +106,40 @@ class _HomeScreenState extends State<HomeScreen> {
   void _share(QuranVerse verse) {
     SharePlus.instance.share(
       ShareParams(
-        text: '${verse.textFor(_language)}\n\n'
+        text:
+            '${verse.textFor(_language)}\n\n'
             '${verse.arabicText}\n\n'
-            '— ${verse.reference}',
+            '\u2014 ${verse.reference}',
       ),
     );
   }
 
-  Future<void> _openSettings() async {
-    await SettingsSheet.show(
-      context,
-      currentLanguage: _language,
-      onLanguageChanged: (code) {
-        setState(() => _language = code);
-        QuranService.instance.setPreferredLanguage(code);
-      },
+  Future<void> _openProfile() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const ProfileScreen(),
+      ),
     );
   }
 
-  /// Swiping to another verse always resets playback — the new verse never
+  Future<void> _openPaywall() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const PaywallScreen(),
+      ),
+    );
+  }
+
+  /// Swiping to another verse always resets playback ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the new verse never
   /// starts reciting on its own.
   void _onPageChanged(int page) {
     _recitation.stop();
-    setState(() => _page = page);
+    setState(() {
+      _page = page;
+      _showSwipeHint = false;
+    });
   }
 
   Future<void> _togglePlayback(QuranVerse verse) async {
@@ -145,12 +159,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    AppThemeScope.watch(context);
     final verses = _verses;
 
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: FeedColors.bg,
-        body: _CenteredSpinner(),
+        body: const _CenteredSpinner(),
       );
     }
     if (_error != null) {
@@ -171,28 +186,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: FeedColors.bg,
-      body: VerseFeedShell(
-        verse: current,
-        ayahCountInSurah:
-            QuranService.instance.ayahCountForSurah(current.surahNumber),
-        liked: _liked.contains(current.id),
-        recitation:
-            isCurrentAudio ? _recitation.state : RecitationState.idle,
-        onToggleLike: () => _toggleLike(current),
-        onShare: () => _share(current),
-        onOpenSettings: _openSettings,
-        onTogglePlayback: () => _togglePlayback(current),
-        // Only this pages — the chrome above and below it stays fixed.
-        feed: PageView.builder(
-          controller: _controller,
-          scrollDirection: Axis.vertical,
-          onPageChanged: _onPageChanged,
-          itemBuilder: (context, page) => VersePage(
-            key: ValueKey(page),
-            verse: _verseForPage(page, verses),
-            languageCode: _language,
+      body: Stack(
+        children: [
+          VerseFeedShell(
+            verse: current,
+            ayahCountInSurah: QuranService.instance.ayahCountForSurah(
+              current.surahNumber,
+            ),
+            liked: _liked.contains(current.id),
+            recitation: isCurrentAudio
+                ? _recitation.state
+                : RecitationState.idle,
+            onToggleLike: () => _toggleLike(current),
+            onShare: () => _share(current),
+            onOpenSettings: _openProfile,
+            onOpenGift: _openPaywall,
+            onTogglePlayback: () => _togglePlayback(current),
+            // Only this pages ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the chrome above and below it stays fixed.
+            feed: PageView.builder(
+              controller: _controller,
+              scrollDirection: Axis.vertical,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (context, page) => VersePage(
+                key: ValueKey(page),
+                verse: _verseForPage(page, verses),
+                languageCode: _language,
+              ),
+            ),
           ),
-        ),
+          if (_showSwipeHint) const _SwipeHint(),
+        ],
       ),
     );
   }
@@ -203,9 +226,7 @@ class _CenteredSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: BreathingLoader(glow: FeedColors.gold),
-    );
+    return Center(child: BreathingLoader(glow: FeedColors.gold));
   }
 }
 
@@ -226,17 +247,72 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: FeedText.label(color: FeedColors.inkSoft).copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
+              style: FeedText.label(
+                color: FeedColors.inkSoft,
+              ).copyWith(fontSize: 14, fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: onRetry,
-              child: Text('Retry', style: FeedText.label(color: FeedColors.gold)),
+              child: Text(
+                'Retry',
+                style: FeedText.label(color: FeedColors.gold),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SwipeHint extends StatefulWidget {
+  const _SwipeHint();
+
+  @override
+  State<_SwipeHint> createState() => _SwipeHintState();
+}
+
+class _SwipeHintState extends State<_SwipeHint>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.08),
+    end: const Offset(0, -0.12),
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 116,
+      child: IgnorePointer(
+        child: SlideTransition(
+          position: _slide,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.keyboard_arrow_up, size: 38, color: FeedColors.ink),
+              const SizedBox(height: 2),
+              Text(
+                'Swipe up for next',
+                style: FeedText.label(
+                  color: FeedColors.ink,
+                ).copyWith(fontSize: 18, fontWeight: FontWeight.w400),
+              ),
+            ],
+          ),
         ),
       ),
     );
