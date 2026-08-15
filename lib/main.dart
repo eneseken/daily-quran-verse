@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,7 +10,9 @@ import 'models/onboarding_data.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
+import 'screens/paywall_screen.dart';
 import 'services/auth_service.dart';
+import 'services/subscription_service.dart';
 import 'widgets/breathing_loader.dart';
 
 const _onboardingSeenKey = 'onboarding_seen';
@@ -26,6 +30,10 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
   );
+
+  // Deliberately not awaited: entitlement is only needed once the feed is on
+  // screen, and a slow network shouldn't hold up the first frame.
+  unawaited(SubscriptionService.instance.init());
 
   runApp(const MuslimApp());
 }
@@ -124,7 +132,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
         final session =
             snapshot.data?.session ?? AuthService.instance.session;
 
-        if (session != null) return HomeScreen();
+        if (session != null) return const _SignedIn();
 
         if (!_onboardingSeen) {
           return OnboardingFlow(onComplete: _finishOnboarding);
@@ -134,6 +142,56 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
       },
     );
   }
+}
+
+/// The home feed, with the paywall presented once per app open for users who
+/// don't hold the entitlement.
+///
+/// The feed builds first and stays mounted underneath, so dismissing the
+/// paywall lands the user straight in the app rather than on a loading state.
+class _SignedIn extends StatefulWidget {
+  const _SignedIn();
+
+  @override
+  State<_SignedIn> createState() => _SignedInState();
+}
+
+class _SignedInState extends State<_SignedIn> {
+  /// Guards against showing the paywall twice — on a rebuild, or when
+  /// RevenueCat's entitlement callback lands after the first frame.
+  bool _offerShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeOffer());
+  }
+
+  Future<void> _maybeOffer() async {
+    if (_offerShown || !mounted) return;
+
+    final subscriptions = SubscriptionService.instance;
+
+    // Give RevenueCat a moment to report entitlement on a cold start; showing
+    // a paywall to someone who already pays is the one unacceptable outcome.
+    if (!subscriptions.isConfigured) {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+    }
+    if (!mounted || subscriptions.isPremium || !subscriptions.isConfigured) {
+      return;
+    }
+
+    _offerShown = true;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const PaywallScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => const HomeScreen();
 }
 
 class _Splash extends StatelessWidget {

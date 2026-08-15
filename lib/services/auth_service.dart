@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/onboarding_data.dart';
 import 'quran_service.dart';
+import 'subscription_service.dart';
 
 /// Thin wrapper over Supabase auth plus the one profile write we need.
 class AuthService {
@@ -19,24 +20,40 @@ class AuthService {
     required String email,
     required String password,
     required String name,
-  }) {
-    return _client.auth.signUp(
+  }) async {
+    final response = await _client.auth.signUp(
       email: email,
       password: password,
       data: {'name': name},
     );
+    await _identifyForPurchases(response.user?.id);
+    return response;
   }
 
   Future<AuthResponse> signIn({
     required String email,
     required String password,
-  }) {
-    return _client.auth.signInWithPassword(email: email, password: password);
+  }) async {
+    final response = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+    await _identifyForPurchases(response.user?.id);
+    return response;
   }
 
   Future<void> signOut() async {
     await _client.auth.signOut();
     QuranService.instance.reset();
+    await SubscriptionService.instance.logout();
+  }
+
+  /// Aliases the RevenueCat customer to the Supabase user id, so purchases
+  /// follow the account across devices and the webhook can map an incoming
+  /// event back to a row in `subscriptions`.
+  Future<void> _identifyForPurchases(String? userId) async {
+    if (userId == null) return;
+    await SubscriptionService.instance.login(userId);
   }
 
   /// Saves the onboarding answers onto the caller's own profile row. The row is
