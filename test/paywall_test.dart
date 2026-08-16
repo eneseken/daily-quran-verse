@@ -22,12 +22,14 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('Terms'), findsOneWidget);
+    expect(find.text('Terms of Use'), findsOneWidget);
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('Restore'), findsOneWidget);
   });
 
-  testWidgets('hides Terms on Android but keeps Privacy', (tester) async {
+  testWidgets('shows Terms of Use on Android and keeps Privacy', (
+    tester,
+  ) async {
     await tester.pumpWidget(_harness(platform: TargetPlatform.android));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));

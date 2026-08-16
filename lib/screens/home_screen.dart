@@ -9,9 +9,11 @@ import '../core/feed_background.dart';
 import '../core/quran_language.dart';
 import '../core/theme.dart';
 import '../models/quran_verse.dart';
+import '../services/profile_photo_service.dart';
 import '../services/quran_service.dart';
 import '../services/recitation_service.dart';
 import '../services/streak_service.dart';
+import '../services/subscription_service.dart';
 import '../widgets/breathing_loader.dart';
 import 'home/feed_theme.dart';
 import 'home/verse_card.dart';
@@ -61,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     QuranLanguageController.instance.addListener(_onLanguageChanged);
     // And for the Arabic show/hide toggle, changed from the same screen.
     ArabicVisibilityController.instance.addListener(_onLanguageChanged);
+    ProfilePhotoService.instance.addListener(_onProfilePhotoChanged);
     _load();
     // Fire-and-forget: opening the feed is what counts as "read today" for
     // the streak, and a slow network shouldn't hold up anything on screen.
@@ -72,7 +75,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onLanguageChanged() {
-    if (mounted) setState(() => _language = QuranLanguageController.instance.code);
+    if (mounted) {
+      setState(() => _language = QuranLanguageController.instance.code);
+    }
+  }
+
+  void _onProfilePhotoChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -82,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     FeedBackgroundController.instance.removeListener(_onBackgroundChanged);
     QuranLanguageController.instance.removeListener(_onLanguageChanged);
     ArabicVisibilityController.instance.removeListener(_onLanguageChanged);
+    ProfilePhotoService.instance.removeListener(_onProfilePhotoChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -172,6 +182,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _togglePlayback(QuranVerse verse) async {
+    if (!SubscriptionService.instance.isPremium) {
+      await _openPaywall();
+      return;
+    }
+
     if (_recitation.activeOwner == verse.id) {
       if (_recitation.state == RecitationState.playing) {
         await _recitation.pause();
@@ -229,6 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onToggleLike: () => _toggleLike(current),
             onShare: () => _share(current),
             onOpenSettings: _openProfile,
+            profilePhotoPath: ProfilePhotoService.instance.path,
             onOpenGift: _openPaywall,
             onTogglePlayback: () => _togglePlayback(current),
             // Only this pages — the chrome above and below it stays fixed.

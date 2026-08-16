@@ -3,10 +3,12 @@ definitions:
     flutter: 3.38.2
     xcode: latest
     cocoapods: default
+  ios_release_vars: &ios_release_vars
+    BUNDLE_ID: com.muslim.pro
 
 workflows:
   # ---------------------------------------------------------------------------
-  # Unsigned build — runs immediately, no Apple Developer account required.
+  # Unsigned build - runs immediately, no Apple Developer account required.
   # Use this to confirm the iOS target compiles on CI.
   # ---------------------------------------------------------------------------
   ios-unsigned:
@@ -41,10 +43,20 @@ workflows:
       app_store_connect: codemagic
     environment:
       <<: *base_env
+      vars:
+        <<: *ios_release_vars
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.muslim.pro
+        bundle_identifier: $BUNDLE_ID
     scripts:
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Fetch packages
         script: flutter pub get
       - name: Analyze

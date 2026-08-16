@@ -128,8 +128,9 @@ Future<void> _pumpAtSize(
 const _defaultSize = Size(390, 844);
 
 void main() {
-  testWidgets('renders the longest ayah without overflow on a small phone',
-      (tester) async {
+  testWidgets('renders the longest ayah without overflow on a small phone', (
+    tester,
+  ) async {
     await _pumpAtSize(tester, _longVerse, logicalSize: const Size(360, 640));
     await tester.pumpAndSettle();
 
@@ -137,8 +138,9 @@ void main() {
     expect(find.textContaining('Al-Baqara'), findsOneWidget);
   });
 
-  testWidgets('hides the Arabic block entirely when showArabic is false',
-      (tester) async {
+  testWidgets('hides the Arabic block entirely when showArabic is false', (
+    tester,
+  ) async {
     tester.view.physicalSize = _defaultSize * tester.view.devicePixelRatio;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -167,23 +169,29 @@ void main() {
     expect(find.textContaining('Al-Baqara'), findsOneWidget);
   });
 
-  testWidgets('renders the Turkish translation when that language is selected',
-      (tester) async {
-    await _pumpAtSize(
-      tester,
-      _longVerse,
-      logicalSize: _defaultSize,
-      language: 'tr',
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'renders the Turkish translation when that language is selected',
+    (tester) async {
+      await _pumpAtSize(
+        tester,
+        _longVerse,
+        logicalSize: _defaultSize,
+        language: 'tr',
+      );
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(find.textContaining('Kayyumdur', findRichText: true), findsNothing);
-    expect(find.textContaining('kayyumdur'), findsOneWidget);
-  });
+      expect(tester.takeException(), isNull);
+      expect(
+        find.textContaining('Kayyumdur', findRichText: true),
+        findsNothing,
+      );
+      expect(find.textContaining('kayyumdur'), findsOneWidget);
+    },
+  );
 
-  testWidgets('like, share, settings and play taps fire their callbacks',
-      (tester) async {
+  testWidgets('like, share, settings and play taps fire their callbacks', (
+    tester,
+  ) async {
     var liked = false;
     var shared = false;
     var settingsOpened = false;
@@ -206,7 +214,7 @@ void main() {
     // — the actual like button in the action row.
     await tester.tap(find.byIcon(Icons.favorite_border).last);
     await tester.tap(find.byIcon(Icons.ios_share));
-    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.tap(find.byIcon(Icons.person));
     await tester.tap(find.byIcon(Icons.play_arrow));
 
     expect(liked, isTrue);
@@ -215,8 +223,9 @@ void main() {
     expect(playbackToggled, isTrue);
   });
 
-  testWidgets('play button shows a spinner while the recitation buffers',
-      (tester) async {
+  testWidgets('play button shows a spinner while the recitation buffers', (
+    tester,
+  ) async {
     await _pumpAtSize(
       tester,
       _longVerse,
@@ -229,8 +238,9 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsNothing);
   });
 
-  testWidgets('play button shows pause while the recitation plays',
-      (tester) async {
+  testWidgets('play button shows pause while the recitation plays', (
+    tester,
+  ) async {
     await _pumpAtSize(
       tester,
       _longVerse,
@@ -245,25 +255,25 @@ void main() {
 
   group('dynamic font size', () {
     testWidgets(
-        'the longest ayah in the Quran renders in full, without overflow',
-        (tester) async {
-      await _pumpAtSize(
-        tester,
-        _longestAyah,
-        logicalSize: const Size(360, 640),
-      );
-      await tester.pumpAndSettle();
+      'the longest ayah in the Quran renders in full, without overflow',
+      (tester) async {
+        await _pumpAtSize(
+          tester,
+          _longestAyah,
+          logicalSize: const Size(360, 640),
+        );
+        await tester.pumpAndSettle();
 
-      // No red-banner overflow, and the whole verse actually reached the
-      // tree — the fallback for the rare case that even the readability
-      // floor doesn't fit a page is to let that page scroll, not to clip.
-      expect(tester.takeException(), isNull);
-      expect(find.text(_longestAyah.arabicText), findsOneWidget);
-      expect(find.textContaining('Al-Baqara'), findsOneWidget);
-    });
+        // No red-banner overflow, and the whole verse actually reached the
+        // tree — the fallback for the rare case that even the readability
+        // floor doesn't fit a page is to let that page scroll, not to clip.
+        expect(tester.takeException(), isNull);
+        expect(find.text(_longestAyah.arabicText), findsOneWidget);
+        expect(find.textContaining('Al-Baqara'), findsOneWidget);
+      },
+    );
 
-    testWidgets('a short ayah renders at full size, unshrunk',
-        (tester) async {
+    testWidgets('a short ayah renders at full size, unshrunk', (tester) async {
       // Deliberately generous: this asserts scale==1 specifically, so the
       // viewport must be tall enough that no font substitution used when
       // Google Fonts can't reach the network (its measured metrics can be
@@ -273,25 +283,21 @@ void main() {
       await _pumpAtSize(tester, _longVerse, logicalSize: const Size(390, 2400));
       await tester.pumpAndSettle();
 
-      final arabic = tester.widget<Text>(
-        find.text(_longVerse.arabicText),
-      );
+      final arabic = tester.widget<Text>(find.text(_longVerse.arabicText));
       expect(arabic.style!.fontSize, VersePage.arabicSize);
     });
 
-    testWidgets('the longest ayah renders visibly smaller than a short one',
-        (tester) async {
+    testWidgets('the longest ayah renders visibly smaller than a short one', (
+      tester,
+    ) async {
       await _pumpAtSize(tester, _longestAyah, logicalSize: _defaultSize);
       await tester.pumpAndSettle();
 
-      final arabic = tester.widget<Text>(
-        find.text(_longestAyah.arabicText),
-      );
+      final arabic = tester.widget<Text>(find.text(_longestAyah.arabicText));
       expect(arabic.style!.fontSize, lessThan(VersePage.arabicSize));
     });
 
-    testWidgets('never shrinks past the readability floor',
-        (tester) async {
+    testWidgets('never shrinks past the readability floor', (tester) async {
       // A viewport far too small for any scale above the floor to fit.
       await _pumpAtSize(
         tester,
@@ -300,17 +306,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final arabic = tester.widget<Text>(
-        find.text(_longestAyah.arabicText),
-      );
+      final arabic = tester.widget<Text>(find.text(_longestAyah.arabicText));
       expect(
         arabic.style!.fontSize,
         greaterThanOrEqualTo(VersePage.arabicSize * VersePage.minScale - 0.01),
       );
     });
 
-    testWidgets('fits the longest ayah across a range of phone heights',
-        (tester) async {
+    testWidgets('fits the longest ayah across a range of phone heights', (
+      tester,
+    ) async {
       for (final size in [
         const Size(320, 568), // iPhone SE
         const Size(360, 640), // small Android

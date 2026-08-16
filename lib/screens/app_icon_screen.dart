@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../core/theme.dart';
 import '../services/app_icon_service.dart';
+import '../services/subscription_service.dart';
+import 'paywall_screen.dart';
 
 class AppIconScreen extends StatefulWidget {
   const AppIconScreen({super.key});
@@ -29,8 +31,19 @@ class _AppIconScreenState extends State<AppIconScreen> {
     setState(() => _selected = icon);
   }
 
-  Future<void> _select(String id) async {
+  Future<void> _select(String id, bool locked) async {
     if (_pending != null) return;
+    if (locked) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => const PaywallScreen(),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {});
+      if (!SubscriptionService.instance.isPremium) return;
+    }
     setState(() => _pending = id);
     await Future<void>.delayed(const Duration(milliseconds: 420));
     try {
@@ -48,6 +61,7 @@ class _AppIconScreenState extends State<AppIconScreen> {
   @override
   Widget build(BuildContext context) {
     AppThemeScope.watch(context);
+    final isPremium = SubscriptionService.instance.isPremium;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -97,7 +111,8 @@ class _AppIconScreenState extends State<AppIconScreen> {
                   return _IconOption(
                     id: id,
                     selected: _selected == id,
-                    onTap: () => _select(id),
+                    locked: !isPremium,
+                    onTap: () => _select(id, !isPremium),
                   );
                 },
               ),
@@ -140,11 +155,13 @@ class _IconOption extends StatelessWidget {
   const _IconOption({
     required this.id,
     required this.selected,
+    required this.locked,
     required this.onTap,
   });
 
   final String id;
   final bool selected;
+  final bool locked;
   final VoidCallback onTap;
 
   @override
@@ -176,6 +193,20 @@ class _IconOption extends StatelessWidget {
               ),
             ),
           ),
+          if (locked)
+            Positioned(
+              right: -2,
+              bottom: 18,
+              child: Container(
+                height: 27,
+                width: 27,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.48),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock, size: 15, color: Colors.white),
+              ),
+            ),
           Positioned(
             top: -9,
             right: 2,
@@ -188,9 +219,9 @@ class _IconOption extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                'FREE',
+                'PREMIUM',
                 style: AppText.sans(
-                  size: 10,
+                  size: 9,
                   color: AppColors.ctaOnBg,
                   weight: FontWeight.w800,
                   height: 1,

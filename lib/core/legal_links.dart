@@ -23,3 +23,12 @@ String legalTermsUrlFor(BuildContext context) =>
 
 Future<void> openLegalUrl(String url) =>
     launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
+Future<void> openFeedbackMail() => launchUrl(
+  Uri(
+    scheme: 'mailto',
+    path: 'eneseken065@gmail.com',
+    queryParameters: {'subject': 'Daily Quran Verse Feedback'},
+  ),
+  mode: LaunchMode.externalApplication,
+);

@@ -41,7 +41,9 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
           builder: (_) => const PaywallScreen(),
         ),
       );
-      return;
+      if (!mounted) return;
+      setState(() {});
+      if (!SubscriptionService.instance.isPremium) return;
     }
     final nextId = _selectedId == id ? null : id;
     setState(() => _selectedId = nextId);

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_strings.dart';
+import '../core/quran_language.dart';
 import '../core/theme.dart';
 
 class ThemeScreen extends StatefulWidget {
@@ -11,6 +13,22 @@ class ThemeScreen extends StatefulWidget {
 
 class _ThemeScreenState extends State<ThemeScreen> {
   late AppThemeMode _choice = AppThemeController.instance.mode;
+
+  @override
+  void initState() {
+    super.initState();
+    QuranLanguageController.instance.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    QuranLanguageController.instance.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +66,13 @@ class _ThemeScreenState extends State<ThemeScreen> {
               ),
               const SizedBox(height: 14),
               Text(
-                'Theme',
+                AppStrings.t('theme'),
                 textAlign: TextAlign.center,
                 style: AppText.serif(size: 38, color: AppColors.ink),
               ),
               const SizedBox(height: 8),
               Text(
-                'Choose how Quran Verse Reminder looks on your\ndevice',
+                AppStrings.t('theme_subtitle'),
                 textAlign: TextAlign.center,
                 style: AppText.sans(
                   size: 16,
@@ -64,19 +82,19 @@ class _ThemeScreenState extends State<ThemeScreen> {
               ),
               const SizedBox(height: 42),
               _ThemeOption(
-                label: 'System',
+                label: AppStrings.t('theme_system'),
                 selected: _choice == AppThemeMode.system,
                 onTap: () => _select(AppThemeMode.system),
               ),
               const SizedBox(height: 18),
               _ThemeOption(
-                label: 'Light',
+                label: AppStrings.t('theme_light'),
                 selected: _choice == AppThemeMode.light,
                 onTap: () => _select(AppThemeMode.light),
               ),
               const SizedBox(height: 18),
               _ThemeOption(
-                label: 'Dark',
+                label: AppStrings.t('theme_dark'),
                 selected: _choice == AppThemeMode.dark,
                 onTap: () => _select(AppThemeMode.dark),
               ),

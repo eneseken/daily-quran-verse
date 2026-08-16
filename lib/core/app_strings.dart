@@ -175,6 +175,16 @@ class AppStrings {
       'ur': 'کسٹمر سینٹر',
       'id': 'Pusat bantuan',
     },
+    'profile_picture': {
+      'en': 'Profile picture',
+      'tr': 'Profil fotoğrafı',
+      'ar': 'صورة الملف الشخصي',
+      'de': 'Profilbild',
+      'fr': 'Photo de profil',
+      'es': 'Foto de perfil',
+      'ur': 'پروفائل تصویر',
+      'id': 'Foto profil',
+    },
     'feedback': {
       'en': 'Feedback',
       'tr': 'Geri bildirim',
@@ -196,6 +206,16 @@ class AppStrings {
       'id': 'Belum diatur',
     },
 
+    'selected': {
+      'en': 'Selected',
+      'tr': 'Seçildi',
+      'ar': 'محدد',
+      'de': 'Ausgewählt',
+      'fr': 'Sélectionné',
+      'es': 'Seleccionado',
+      'ur': 'منتخب',
+      'id': 'Dipilih',
+    },
     'theme_system': {
       'en': 'System',
       'tr': 'Sistem',
@@ -227,6 +247,16 @@ class AppStrings {
       'id': 'Gelap',
     },
 
+    'theme_subtitle': {
+      'en': 'Choose how Quran Verse Reminder looks on your\ndevice',
+      'tr': 'Quran Verse Reminder cihazında nasıl\ngörünsün seç',
+      'ar': 'اختر كيف يظهر Quran Verse Reminder\nعلى جهازك',
+      'de': 'Wähle, wie Quran Verse Reminder auf deinem\nGerät aussieht',
+      'fr': 'Choisis l’apparence de Quran Verse Reminder\nsur ton appareil',
+      'es': 'Elige cómo se ve Quran Verse Reminder\nen tu dispositivo',
+      'ur': 'منتخب کریں کہ Quran Verse Reminder آپ کے\nآلے پر کیسا نظر آئے',
+      'id': 'Pilih tampilan Quran Verse Reminder\ndi perangkatmu',
+    },
     'legal': {
       'en': 'Legal',
       'tr': 'Yasal',
@@ -280,20 +310,27 @@ class AppStrings {
       'id': 'Bahasa',
     },
     'language_subtitle': {
-      'en': "Choose which language the ayah's translation shows "
+      'en':
+          "Choose which language the ayah's translation shows "
           'in below the Arabic',
-      'tr': 'Ayetin çevirisinin Arapçanın altında hangi dilde '
+      'tr':
+          'Ayetin çevirisinin Arapçanın altında hangi dilde '
           'gösterileceğini seç',
       'ar': 'اختر اللغة التي تظهر بها ترجمة الآية أسفل النص العربي',
-      'de': 'Wähle, in welcher Sprache die Übersetzung des Verses '
+      'de':
+          'Wähle, in welcher Sprache die Übersetzung des Verses '
           'unter dem arabischen Text angezeigt wird',
-      'fr': "Choisissez la langue dans laquelle s'affiche la "
+      'fr':
+          "Choisissez la langue dans laquelle s'affiche la "
           "traduction du verset sous l'arabe",
-      'es': 'Elige en qué idioma se muestra la traducción del '
+      'es':
+          'Elige en qué idioma se muestra la traducción del '
           'versículo debajo del árabe',
-      'ur': 'منتخب کریں کہ عربی متن کے نیچے آیت کا ترجمہ کس زبان '
+      'ur':
+          'منتخب کریں کہ عربی متن کے نیچے آیت کا ترجمہ کس زبان '
           'میں دکھایا جائے',
-      'id': 'Pilih bahasa terjemahan ayat yang ditampilkan di '
+      'id':
+          'Pilih bahasa terjemahan ayat yang ditampilkan di '
           'bawah teks Arab',
     },
 
@@ -311,11 +348,14 @@ class AppStrings {
       'en': 'Turn off to see only the translation on the home screen',
       'tr': 'Kapatırsan ana sayfada sadece çeviri görünür',
       'ar': 'أوقف هذا الخيار لرؤية الترجمة فقط في الشاشة الرئيسية',
-      'de': 'Ausschalten, um auf der Startseite nur die Übersetzung '
+      'de':
+          'Ausschalten, um auf der Startseite nur die Übersetzung '
           'zu sehen',
-      'fr': 'Désactivez pour ne voir que la traduction sur l\'écran '
+      'fr':
+          'Désactivez pour ne voir que la traduction sur l\'écran '
           'd\'accueil',
-      'es': 'Desactívalo para ver solo la traducción en la pantalla '
+      'es':
+          'Desactívalo para ver solo la traducción en la pantalla '
           'principal',
       'ur': 'صرف ہوم اسکرین پر ترجمہ دیکھنے کے لیے اسے بند کریں',
       'id': 'Matikan untuk hanya melihat terjemahan di beranda',

@@ -60,12 +60,11 @@ class FeedText {
     height: 2.0,
   );
 
-  static TextStyle quote({double size = 27}) => GoogleFonts.playfairDisplay(
-    fontSize: size,
+  static TextStyle quote({double size = 27}) => AppText.numeral(
+    size: size,
     color: FeedColors.ink,
-    fontWeight: FontWeight.w700,
-    height: 1.38,
-  );
+    weight: FontWeight.w700,
+  ).copyWith(height: 1.18);
 
   static TextStyle reference({double size = 13}) => GoogleFonts.playfairDisplay(
     fontSize: size,

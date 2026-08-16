@@ -12,8 +12,10 @@ import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
 import 'screens/paywall_screen.dart';
+import 'services/admob_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/profile_photo_service.dart';
 import 'services/subscription_service.dart';
 import 'widgets/breathing_loader.dart';
 
@@ -26,7 +28,9 @@ Future<void> main() async {
   // there's no light-then-dark flash on launch.
   await AppThemeController.instance.restore();
   await FeedBackgroundController.instance.restore();
+  await ProfilePhotoService.instance.restore();
   await NotificationService.instance.initialize();
+  unawaited(AdMobService.instance.initialize());
 
   await Supabase.initialize(
     url: SupabaseConfig.url,

@@ -11,10 +11,12 @@ import 'customize_screen.dart';
 import 'edit_gender_screen.dart';
 import 'edit_name_screen.dart';
 import '../services/auth_service.dart';
+import '../services/profile_photo_service.dart';
 import '../services/streak_service.dart';
 import 'followed_topics_screen.dart';
 import 'language_screen.dart';
 import 'notifications_screen.dart';
+import 'paywall_screen.dart';
 import 'theme_screen.dart';
 import 'widgets_screen.dart';
 
@@ -98,6 +100,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (result != null && mounted) setState(() => _name = result);
   }
 
+  Future<void> _pickProfilePhoto() async {
+    await ProfilePhotoService.instance.pickFromGallery();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _editGender() async {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
@@ -105,6 +112,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (result != null && mounted) setState(() => _sex = result);
+  }
+
+  Future<void> _openPaywall() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const PaywallScreen(),
+      ),
+    );
   }
 
   Future<void> _signOut() async {
@@ -140,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 48),
-              _UnlockCard(),
+              _UnlockCard(onTap: _openPaywall),
               const SizedBox(height: 16),
               _StreakCard(streak: _streak),
               const SizedBox(height: 52),
@@ -178,6 +194,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _SettingsGroup(
                 onNameTap: _editName,
                 onGenderTap: _editGender,
+                onProfilePictureTap: _pickProfilePhoto,
+                onFeedbackTap: openFeedbackMail,
                 onCustomizeTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const CustomizeScreen()),
@@ -213,7 +231,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _ProfileRowData(
                     Icons.language,
                     'language',
-                    supportedQuranLanguages[QuranLanguageController.instance.code] ??
+                    supportedQuranLanguages[QuranLanguageController
+                            .instance
+                            .code] ??
                         QuranLanguageController.instance.code,
                   ),
                   _ProfileRowData(
@@ -224,7 +244,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   _ProfileRowData(Icons.wallpaper_outlined, 'customize', ''),
-                  _ProfileRowData(Icons.credit_card, 'customer_center', ''),
+                  _ProfileRowData(
+                    Icons.account_circle_outlined,
+                    'profile_picture',
+                    ProfilePhotoService.instance.path == null
+                        ? ''
+                        : AppStrings.t('selected'),
+                  ),
                   _ProfileRowData(Icons.chat_bubble_outline, 'feedback', ''),
                 ],
               ),
@@ -323,68 +349,81 @@ class _TopClose extends StatelessWidget {
 }
 
 class _UnlockCard extends StatelessWidget {
-  const _UnlockCard();
+  const _UnlockCard({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 130,
-      decoration: BoxDecoration(
-        color: ProfileScreen._gold,
-        borderRadius: BorderRadius.circular(33),
-      ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(33),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            top: 24,
-            child: Container(
-              height: 112,
-              width: 150,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.45),
-                shape: BoxShape.circle,
-              ),
-            ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(33),
+        child: Container(
+          width: double.infinity,
+          height: 130,
+          decoration: BoxDecoration(
+            color: ProfileScreen._gold,
+            borderRadius: BorderRadius.circular(33),
           ),
-          Positioned(
-            right: 19,
-            top: 48,
-            child: Icon(
-              Icons.menu_book_outlined,
-              size: 70,
-              color: Colors.black.withValues(alpha: 0.5),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 126, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  AppStrings.t('unlock_title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.sans(size: 18, color: const Color(0xFF24211E)),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  AppStrings.t('unlock_subtitle'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.sans(
-                    size: 16,
-                    color: const Color(0xFF5E564D),
-                    height: 1.38,
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                top: 24,
+                child: Container(
+                  height: 112,
+                  width: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ],
-            ),
+              ),
+              Positioned(
+                right: 19,
+                top: 48,
+                child: Icon(
+                  Icons.menu_book_outlined,
+                  size: 70,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 126, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      AppStrings.t('unlock_title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.sans(
+                        size: 18,
+                        color: const Color(0xFF24211E),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppStrings.t('unlock_subtitle'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.sans(
+                        size: 16,
+                        color: const Color(0xFF5E564D),
+                        height: 1.38,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -770,6 +809,8 @@ class _SettingsGroup extends StatelessWidget {
     this.onLanguageTap,
     this.onThemeTap,
     this.onCustomizeTap,
+    this.onProfilePictureTap,
+    this.onFeedbackTap,
     this.onPrivacyTap,
     this.onTermsTap,
   });
@@ -780,6 +821,8 @@ class _SettingsGroup extends StatelessWidget {
   final VoidCallback? onLanguageTap;
   final VoidCallback? onThemeTap;
   final VoidCallback? onCustomizeTap;
+  final VoidCallback? onProfilePictureTap;
+  final VoidCallback? onFeedbackTap;
   final VoidCallback? onPrivacyTap;
   final VoidCallback? onTermsTap;
 
@@ -803,6 +846,8 @@ class _SettingsGroup extends StatelessWidget {
                 'language' => onLanguageTap,
                 'theme' => onThemeTap,
                 'customize' => onCustomizeTap,
+                'profile_picture' => onProfilePictureTap,
+                'feedback' => onFeedbackTap,
                 'privacy_policy' => onPrivacyTap,
                 'terms_of_use' => onTermsTap,
                 _ => null,

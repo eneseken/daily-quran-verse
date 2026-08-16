@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../core/legal_links.dart';
 import '../core/theme.dart';
+import '../services/admob_service.dart';
 import '../services/subscription_service.dart';
 import '../widgets/breathing_loader.dart';
 
@@ -11,7 +15,7 @@ const _premiumFeatures = [
   _PaywallFeature(
     icon: Icons.menu_book_rounded,
     title: 'Every Quran feature unlocked',
-    subtitle: 'All quotes, themes, categories, widgets and app icon styles.',
+    subtitle: 'All quotes, themes, categories and future premium updates.',
   ),
   _PaywallFeature(
     icon: Icons.wallpaper_rounded,
@@ -19,9 +23,14 @@ const _premiumFeatures = [
     subtitle: 'Use the full background collection on your daily verse feed.',
   ),
   _PaywallFeature(
-    icon: Icons.widgets_rounded,
-    title: 'Home screen widgets',
-    subtitle: 'Keep a beautiful verse close without opening the app.',
+    icon: Icons.apps_rounded,
+    title: 'Custom App Icons',
+    subtitle: 'Choose a beautiful premium icon for your home screen.',
+  ),
+  _PaywallFeature(
+    icon: Icons.favorite_rounded,
+    title: 'Support the app',
+    subtitle: 'Help us keep improving this peaceful Quran experience.',
   ),
   _PaywallFeature(
     icon: Icons.block_rounded,
@@ -88,11 +97,14 @@ class _PaywallScreenState extends State<PaywallScreen>
     return null;
   }
 
-  void _close() {
+  void _close({bool showAd = true}) {
     if (widget.onDismiss != null) {
       widget.onDismiss!();
     } else if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
+    }
+    if (showAd) {
+      unawaited(AdMobService.instance.showInterstitialIfAvailable());
     }
   }
 
@@ -272,10 +284,11 @@ class _AnimatedFeatureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final start = index * 0.16;
+    final start = (index * 0.12).clamp(0.0, 0.82);
+    final end = (start + 0.18).clamp(0.0, 1.0);
     final animation = CurvedAnimation(
       parent: controller,
-      curve: Interval(start, start + 0.52, curve: Curves.easeOutCubic),
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
     );
 
     return FadeTransition(
@@ -664,7 +677,9 @@ class _CancelNotice extends StatelessWidget {
         const SizedBox(width: 8),
         Flexible(
           child: Text(
-            'No commitment, cancel anytime on Google Play Subscriptions Page',
+            defaultTargetPlatform == TargetPlatform.iOS
+                ? 'No commitment, cancel anytime in App Store Subscriptions'
+                : 'No commitment, cancel anytime on Google Play Subscriptions Page',
             textAlign: TextAlign.left,
             style: AppText.sans(size: 15, color: AppColors.ink, height: 1.35),
           ),
@@ -687,14 +702,13 @@ class _LegalFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showTerms = shouldShowLegalTerms(context);
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 15,
       runSpacing: 2,
       children: [
         _LegalLink(text: 'Restore', onTap: onRestore),
-        if (showTerms) _LegalLink(text: 'Terms', onTap: onTerms),
+        _LegalLink(text: 'Terms of Use', onTap: onTerms),
         _LegalLink(text: 'Privacy', onTap: onPrivacy),
       ],
     );

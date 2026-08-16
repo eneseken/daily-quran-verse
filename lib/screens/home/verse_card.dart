@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -23,6 +24,7 @@ class VerseFeedShell extends StatelessWidget {
     required this.onShare,
     required this.onOpenSettings,
     required this.onTogglePlayback,
+    this.profilePhotoPath,
     this.onOpenGift,
   });
 
@@ -35,6 +37,7 @@ class VerseFeedShell extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onOpenSettings;
   final VoidCallback onTogglePlayback;
+  final String? profilePhotoPath;
   final VoidCallback? onOpenGift;
 
   @override
@@ -62,7 +65,10 @@ class VerseFeedShell extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: Row(
                     children: [
-                      _ProfileFab(onTap: onOpenSettings),
+                      _ProfileFab(
+                        onTap: onOpenSettings,
+                        photoPath: profilePhotoPath,
+                      ),
                       Expanded(
                         child: Center(
                           child: _TopIndicator(
@@ -157,32 +163,62 @@ class _GiftButtonState extends State<_GiftButton>
 }
 
 class _ProfileFab extends StatelessWidget {
-  const _ProfileFab({required this.onTap});
+  const _ProfileFab({required this.onTap, this.photoPath});
 
   final VoidCallback onTap;
+  final String? photoPath;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: FeedColors.gold,
-      shape: const CircleBorder(),
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          height: 52,
-          width: 52,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(Icons.person, size: 28, color: FeedColors.bg),
-              const Icon(
-                Icons.person_outline,
-                size: 28,
-                color: Colors.transparent,
-              ),
+    return SizedBox(
+      height: 52,
+      width: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const SweepGradient(
+            colors: [
+              Color(0xFF000000),
+              Color(0xFF000000),
+              Color(0xFFFFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0xFF007A3D),
+              Color(0xFF007A3D),
+              Color(0xFFCE1126),
+              Color(0xFFCE1126),
+              Color(0xFF000000),
             ],
+            stops: [0.0, 0.22, 0.25, 0.47, 0.50, 0.72, 0.75, 0.97, 1.0],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Material(
+            color: FeedColors.gold,
+            shape: const CircleBorder(),
+            elevation: 0,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                height: 44,
+                width: 44,
+                child: ClipOval(
+                  child: photoPath == null
+                      ? Icon(Icons.person, size: 28, color: FeedColors.bg)
+                      : Image.file(
+                          File(photoPath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.person,
+                            size: 28,
+                            color: FeedColors.bg,
+                          ),
+                        ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
