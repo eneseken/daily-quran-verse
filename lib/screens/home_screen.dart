@@ -4,17 +4,21 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/arabic_visibility.dart';
+import '../core/feed_background.dart';
+import '../core/quran_language.dart';
 import '../core/theme.dart';
 import '../models/quran_verse.dart';
 import '../services/quran_service.dart';
 import '../services/recitation_service.dart';
+import '../services/streak_service.dart';
 import '../widgets/breathing_loader.dart';
 import 'home/feed_theme.dart';
 import 'home/verse_card.dart';
 import 'paywall_screen.dart';
 import 'profile_screen.dart';
 
-/// The main feed: one ayah per screen, scroll down for the next ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â an endless
+/// The main feed: one ayah per screen, scroll down for the next — an endless
 /// vertical reel through the whole Quran, starting at a random verse each
 /// time the app opens.
 ///
@@ -47,13 +51,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _recitationSub = _recitation.stateStream.listen((_) {
       if (mounted) setState(() {});
     });
+    // The Customize screen's background photo (and the ink colors that
+    // follow it) live outside this widget's state, so rebuild here when it
+    // changes rather than only picking up the new value next time this
+    // screen happens to rebuild for some other reason.
+    FeedBackgroundController.instance.addListener(_onBackgroundChanged);
+    // Same story for the translation language, changed from the profile
+    // screen's Language row.
+    QuranLanguageController.instance.addListener(_onLanguageChanged);
+    // And for the Arabic show/hide toggle, changed from the same screen.
+    ArabicVisibilityController.instance.addListener(_onLanguageChanged);
     _load();
+    // Fire-and-forget: opening the feed is what counts as "read today" for
+    // the streak, and a slow network shouldn't hold up anything on screen.
+    unawaited(StreakService.instance.logTodayIfNeeded());
+  }
+
+  void _onBackgroundChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() => _language = QuranLanguageController.instance.code);
   }
 
   @override
   void dispose() {
     _recitationSub?.cancel();
     _recitation.dispose();
+    FeedBackgroundController.instance.removeListener(_onBackgroundChanged);
+    QuranLanguageController.instance.removeListener(_onLanguageChanged);
+    ArabicVisibilityController.instance.removeListener(_onLanguageChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -63,14 +91,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         QuranService.instance.loadAll(),
         QuranService.instance.loadLikedVerseIds(),
-        QuranService.instance.loadPreferredLanguage(),
+        QuranLanguageController.instance.restore(),
+        ArabicVisibilityController.instance.restore(),
       ]);
       if (!mounted) return;
       final verses = results[0] as List<QuranVerse>;
       setState(() {
         _verses = verses;
         _liked = results[1] as Set<int>;
-        _language = results[2] as String;
+        _language = QuranLanguageController.instance.code;
         _startOffset = Random().nextInt(verses.length);
         _loading = false;
       });
@@ -132,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Swiping to another verse always resets playback ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the new verse never
+  /// Swiping to another verse always resets playback — the new verse never
   /// starts reciting on its own.
   void _onPageChanged(int page) {
     _recitation.stop();
@@ -202,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenSettings: _openProfile,
             onOpenGift: _openPaywall,
             onTogglePlayback: () => _togglePlayback(current),
-            // Only this pages ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the chrome above and below it stays fixed.
+            // Only this pages — the chrome above and below it stays fixed.
             feed: PageView.builder(
               controller: _controller,
               scrollDirection: Axis.vertical,
@@ -211,6 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 key: ValueKey(page),
                 verse: _verseForPage(page, verses),
                 languageCode: _language,
+                showArabic: ArabicVisibilityController.instance.showArabic,
               ),
             ),
           ),

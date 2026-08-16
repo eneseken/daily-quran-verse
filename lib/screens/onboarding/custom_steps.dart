@@ -247,7 +247,7 @@ class WelcomeStep extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/themess/1.png'),
+          image: AssetImage('assets/themes/1.png'),
           fit: BoxFit.cover,
         ),
       ),

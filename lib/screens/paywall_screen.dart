@@ -1,78 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../core/legal_links.dart';
 import '../core/theme.dart';
 import '../services/subscription_service.dart';
 import '../widgets/breathing_loader.dart';
-import '../widgets/reveal.dart';
-import 'home/feed_theme.dart';
 
-/// Apple requires the standard EULA to be linked from anywhere a subscription
-/// is sold; the privacy policy is required on both stores.
-const _termsUrl =
-    'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-const _privacyUrl = 'https://sites.google.com/view/quran-verse/home';
-
-/// What a subscription unlocks. Placeholders for now — the list is the promise
-/// we design against, and each line gets built out later.
-const _features = [
-  (
-    '🔊',
-    'Every reciter, offline',
-    'Alafasy, Sudais, Minshawi and more — downloaded for the commute, '
-        'the plane, the quiet hours.',
+const _premiumFeatures = [
+  _PaywallFeature(
+    icon: Icons.menu_book_rounded,
+    title: 'Every Quran feature unlocked',
+    subtitle: 'All quotes, themes, categories, widgets and app icon styles.',
   ),
-  (
-    '🗂️',
-    'Unlimited collections',
-    'Save any ayah into themed collections — hardship, gratitude, patience — '
-        'instead of one flat list.',
+  _PaywallFeature(
+    icon: Icons.wallpaper_rounded,
+    title: 'Premium themes',
+    subtitle: 'Use the full background collection on your daily verse feed.',
   ),
-  (
-    '🔁',
-    'Memorisation mode',
-    'Spaced repetition built around the ayahs you saved, so what you read '
-        'actually stays with you.',
+  _PaywallFeature(
+    icon: Icons.widgets_rounded,
+    title: 'Home screen widgets',
+    subtitle: 'Keep a beautiful verse close without opening the app.',
   ),
-  (
-    '🎨',
-    'Widgets & themes',
-    'Every home-screen widget size, and the full set of paper and night '
-        'themes for the feed.',
-  ),
-  (
-    '🌍',
-    'All translations',
-    'Read side by side in any supported language, with word-by-word meaning.',
+  _PaywallFeature(
+    icon: Icons.block_rounded,
+    title: 'No ads',
+    subtitle: 'A calm reading space for daily Quran verses and reminders.',
+    slash: true,
   ),
 ];
 
-/// Full-screen subscription offer. Shown on app open for users without the
-/// entitlement, and dismissible — never a hard wall.
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key, this.onDismiss});
 
-  /// Called when the user closes the paywall or finishes purchasing. When
-  /// null, the screen pops itself instead.
   final VoidCallback? onDismiss;
 
   @override
   State<PaywallScreen> createState() => _PaywallScreenState();
 }
 
-class _PaywallScreenState extends State<PaywallScreen> {
+class _PaywallScreenState extends State<PaywallScreen>
+    with SingleTickerProviderStateMixin {
   Offering? _offering;
   Package? _selected;
   bool _loading = true;
   bool _busy = false;
   String? _error;
+  late final AnimationController _featureController;
 
   @override
   void initState() {
     super.initState();
+    _featureController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..forward();
     _loadOfferings();
+  }
+
+  @override
+  void dispose() {
+    _featureController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadOfferings() async {
@@ -80,8 +70,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     setState(() {
       _offering = offering;
-      // Default to the annual plan — the better deal, and what the layout
-      // leads with.
       _selected = _preferredDefault(offering);
       _loading = false;
     });
@@ -90,10 +78,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Package? _preferredDefault(Offering? offering) {
     final packages = offering?.availablePackages ?? const [];
     if (packages.isEmpty) return null;
-    return packages.firstWhere(
-      (p) => p.packageType == PackageType.annual,
-      orElse: () => packages.first,
-    );
+    return _packageFor(PackageType.annual, packages) ?? packages.first;
+  }
+
+  Package? _packageFor(PackageType type, List<Package> packages) {
+    for (final package in packages) {
+      if (package.packageType == type) return package;
+    }
+    return null;
   }
 
   void _close() {
@@ -108,7 +100,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final package = _selected;
     if (package == null || _busy) return;
 
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
     setState(() {
       _busy = true;
       _error = null;
@@ -150,157 +142,210 @@ class _PaywallScreenState extends State<PaywallScreen> {
     });
   }
 
-  Future<void> _open(String url) async {
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  }
-
   @override
   Widget build(BuildContext context) {
+    AppThemeScope.watch(context);
     final packages = _offering?.availablePackages ?? const <Package>[];
 
     return Scaffold(
-      backgroundColor: FeedColors.bg,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: _loading
-            ? Center(child: BreathingLoader(glow: FeedColors.gold))
-            : Column(
-                children: [
-                  _CloseRow(onClose: _close),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(26, 4, 26, 8),
-                      child: RevealColumn(
-                        step: const Duration(milliseconds: 260),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Text.rich(
-                              TextSpan(
-                                children: markup(
-                                  'Keep the Quran **close, every day.**',
-                                  FeedText.quote(size: 27),
-                                  FeedText.quote(
-                                    size: 27,
-                                  ).copyWith(color: FeedColors.gold),
+            ? Center(child: BreathingLoader(glow: AppColors.gold))
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final horizontal = constraints.maxWidth <= 360 ? 17.0 : 20.0;
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontal,
+                            18,
+                            horizontal,
+                            8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _CloseButton(onClose: _close),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Unlock your daily\nQuran journey',
+                                textAlign: TextAlign.center,
+                                style: AppText.serif(
+                                  size: 30,
+                                  color: AppColors.ink,
+                                  height: 1.05,
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: 24),
+                              for (var i = 0; i < _premiumFeatures.length; i++)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 19),
+                                  child: _AnimatedFeatureRow(
+                                    controller: _featureController,
+                                    index: i,
+                                    child: _FeatureRow(
+                                      feature: _premiumFeatures[i],
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 22),
-                            child: Text(
-                              'Premium opens the whole app — recitation, '
-                              'memorisation and every translation.',
-                              style: AppText.sans(
-                                size: 14.5,
-                                color: FeedColors.inkSoft,
-                              ),
-                            ),
-                          ),
-                          for (final (emoji, title, body) in _features)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _FeatureRow(
-                                emoji: emoji,
-                                title: title,
-                                body: body,
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  _PurchasePanel(
-                    packages: packages,
-                    selected: _selected,
-                    busy: _busy,
-                    error: _error,
-                    onSelect: (p) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _selected = p);
-                    },
-                    onPurchase: _purchase,
-                    onRestore: _restore,
-                    onTerms: () => _open(_termsUrl),
-                    onPrivacy: () => _open(_privacyUrl),
-                  ),
-                ],
+                      _BottomPaywallPanel(
+                        packages: packages,
+                        selected: _selected,
+                        busy: _busy,
+                        error: _error,
+                        onSelect: (package) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _selected = package);
+                        },
+                        onPurchase: _purchase,
+                        onDismiss: _close,
+                        onRestore: _restore,
+                        onTerms: () => openLegalUrl(legalTermsUrlFor(context)),
+                        onPrivacy: () => openLegalUrl(legalPrivacyUrl),
+                      ),
+                    ],
+                  );
+                },
               ),
       ),
     );
   }
 }
 
-class _CloseRow extends StatelessWidget {
-  const _CloseRow({required this.onClose});
+class _PaywallFeature {
+  const _PaywallFeature({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.slash = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool slash;
+}
+
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onClose});
 
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-      child: Row(
-        children: [
-          const Spacer(),
-          // Deliberately low contrast: present and tappable, but not competing
-          // with the offer. Full 44pt target for accessibility.
-          Material(
-            color: Colors.transparent,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: onClose,
-              customBorder: const CircleBorder(),
-              child: SizedBox(
-                height: 44,
-                width: 44,
-                child: Icon(Icons.close, size: 20, color: FeedColors.inkFaint),
-              ),
-            ),
-          ),
-        ],
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onClose,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          height: 38,
+          width: 38,
+          child: Icon(Icons.close, size: 22, color: AppColors.inkFaint),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedFeatureRow extends StatelessWidget {
+  const _AnimatedFeatureRow({
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
+
+  final AnimationController controller;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = index * 0.16;
+    final animation = CurvedAnimation(
+      parent: controller,
+      curve: Interval(start, start + 0.52, curve: Curves.easeOutCubic),
+    );
+
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.12),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
       ),
     );
   }
 }
 
 class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({
-    required this.emoji,
-    required this.title,
-    required this.body,
-  });
+  const _FeatureRow({required this.feature});
 
-  final String emoji;
-  final String title;
-  final String body;
+  final _PaywallFeature feature;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 19)),
-        const SizedBox(width: 14),
+        Container(
+          width: 34,
+          height: 34,
+          margin: const EdgeInsets.only(top: 1, left: 12),
+          decoration: BoxDecoration(
+            color: AppColors.gold,
+            shape: BoxShape.circle,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(feature.icon, color: AppColors.ctaOnBg, size: 21),
+              if (feature.slash)
+                Transform.rotate(
+                  angle: -0.78,
+                  child: Container(
+                    width: 25,
+                    height: 1.8,
+                    color: AppColors.ctaOnBg,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 15),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                feature.title,
                 style: AppText.sans(
-                  size: 14.5,
-                  color: FeedColors.ink,
+                  size: 20,
+                  color: AppColors.ink,
                   weight: FontWeight.w700,
+                  height: 1.12,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
-                body,
+                feature.subtitle,
                 style: AppText.sans(
-                  size: 13,
-                  color: FeedColors.inkSoft,
-                  height: 1.4,
+                  size: 16,
+                  color: AppColors.inkSoft,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -311,16 +356,15 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-/// The plan picker, CTA and legal footer — pinned below the scrolling copy so
-/// the price and the button are always on screen.
-class _PurchasePanel extends StatelessWidget {
-  const _PurchasePanel({
+class _BottomPaywallPanel extends StatelessWidget {
+  const _BottomPaywallPanel({
     required this.packages,
     required this.selected,
     required this.busy,
     required this.error,
     required this.onSelect,
     required this.onPurchase,
+    required this.onDismiss,
     required this.onRestore,
     required this.onTerms,
     required this.onPrivacy,
@@ -332,82 +376,159 @@ class _PurchasePanel extends StatelessWidget {
   final String? error;
   final ValueChanged<Package> onSelect;
   final VoidCallback onPurchase;
+  final VoidCallback onDismiss;
   final VoidCallback onRestore;
   final VoidCallback onTerms;
   final VoidCallback onPrivacy;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(26, 14, 26, 10),
-      decoration: BoxDecoration(
-        // A hairline lifts the panel off the scrolling list without a hard
-        // slab of colour.
-        border: Border(top: BorderSide(color: FeedColors.chipBorder)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (packages.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                "Plans aren't available right now. Please try again later.",
-                textAlign: TextAlign.center,
-                style: AppText.sans(size: 13.5, color: FeedColors.inkSoft),
-              ),
-            )
-          else
-            for (final package in packages)
+    final monthly = _packageFor(PackageType.monthly) ?? _fallbackPackage(0);
+    final yearly = _packageFor(PackageType.annual) ?? _fallbackPackage(1);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.bg),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(17, 8, 17, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (packages.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _PlanTile(
-                  package: package,
-                  selected:
-                      identical(package, selected) ||
-                      package.identifier == selected?.identifier,
-                  onTap: () => onSelect(package),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  "Plans aren't available right now. Please try again later.",
+                  textAlign: TextAlign.center,
+                  style: AppText.sans(size: 14, color: AppColors.inkSoft),
                 ),
+              )
+            else
+              Row(
+                children: [
+                  if (monthly != null)
+                    Expanded(
+                      child: _PlanCard(
+                        package: monthly,
+                        isPopular: monthly.packageType == PackageType.monthly,
+                        isSelected: _samePackage(monthly, selected),
+                        onTap: () => onSelect(monthly),
+                      ),
+                    ),
+                  if (monthly != null && yearly != null)
+                    const SizedBox(width: 8),
+                  if (yearly != null)
+                    Expanded(
+                      child: _PlanCard(
+                        package: yearly,
+                        isPopular: monthly == null,
+                        isSelected: _samePackage(yearly, selected),
+                        onTap: () => onSelect(yearly),
+                      ),
+                    ),
+                ],
               ),
-          if (error != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              error!,
-              textAlign: TextAlign.center,
-              style: AppText.sans(size: 12.5, color: FeedColors.liked),
+            const SizedBox(height: 16),
+            const _CancelNotice(),
+            if (error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                error!,
+                textAlign: TextAlign.center,
+                style: AppText.sans(size: 12.5, color: AppColors.error),
+              ),
+            ],
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 54,
+              child: FilledButton(
+                onPressed: packages.isEmpty || busy ? null : onPurchase,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.ctaBg,
+                  foregroundColor: AppColors.ctaOnBg,
+                  disabledBackgroundColor: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+                child: busy
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation(AppColors.ctaOnBg),
+                        ),
+                      )
+                    : Text(
+                        'Start my Quran journey',
+                        style: AppText.sans(
+                          size: 17,
+                          color: AppColors.ctaOnBg,
+                          weight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: busy ? null : onDismiss,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.ink,
+                minimumSize: const Size.fromHeight(24),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                'No, thank you',
+                style: AppText.sans(size: 17, color: AppColors.ink),
+              ),
+            ),
+            const SizedBox(height: 9),
+            _LegalFooter(
+              onRestore: onRestore,
+              onTerms: onTerms,
+              onPrivacy: onPrivacy,
             ),
           ],
-          const SizedBox(height: 6),
-          _PaywallCta(
-            label: busy ? '' : 'Continue',
-            busy: busy,
-            onPressed: packages.isEmpty ? null : onPurchase,
-          ),
-          const SizedBox(height: 8),
-          _LegalFooter(
-            onRestore: onRestore,
-            onTerms: onTerms,
-            onPrivacy: onPrivacy,
-          ),
-        ],
+        ),
       ),
     );
   }
+
+  Package? _packageFor(PackageType type) {
+    for (final package in packages) {
+      if (package.packageType == type) return package;
+    }
+    return null;
+  }
+
+  Package? _fallbackPackage(int index) {
+    if (packages.length <= index) return null;
+    return packages[index];
+  }
+
+  bool _samePackage(Package a, Package? b) {
+    return identical(a, b) || a.identifier == b?.identifier;
+  }
 }
 
-class _PlanTile extends StatelessWidget {
-  const _PlanTile({
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
     required this.package,
-    required this.selected,
+    required this.isSelected,
     required this.onTap,
+    this.isPopular = false,
   });
 
   final Package package;
-  final bool selected;
+  final bool isSelected;
+  final bool isPopular;
   final VoidCallback onTap;
 
-  /// "Yearly" / "Monthly" rather than RevenueCat's raw identifiers.
-  String get _title => switch (package.packageType) {
+  String get _label => switch (package.packageType) {
     PackageType.annual => 'Yearly',
     PackageType.monthly => 'Monthly',
     PackageType.weekly => 'Weekly',
@@ -415,156 +536,144 @@ class _PlanTile extends StatelessWidget {
     _ => package.storeProduct.title,
   };
 
-  String? get _perMonth {
-    if (package.packageType != PackageType.annual) return null;
-    final price = package.storeProduct.price;
-    if (price <= 0) return null;
-    final monthly = price / 12;
-    return '${package.storeProduct.currencyCode} '
-        '${monthly.toStringAsFixed(2)}/mo';
-  }
+  String get _priceSuffix => switch (package.packageType) {
+    PackageType.annual => '/yr',
+    PackageType.monthly => '/mo',
+    PackageType.weekly => '/wk',
+    _ => '',
+  };
+
+  String get _price => '${package.storeProduct.priceString}$_priceSuffix';
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? FeedColors.chip : Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? FeedColors.gold : FeedColors.chipBorder,
-              width: selected ? 1.6 : 1,
-            ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        height: 74,
+        padding: const EdgeInsets.fromLTRB(19, 14, 15, 12),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.gold : AppColors.track,
+            width: isSelected ? 2 : 1.5,
           ),
-          child: Row(
-            children: [
-              _RadioDot(selected: selected),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _title,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            if (isPopular)
+              Positioned(
+                top: -24,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(9, 4, 9, 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'Most Popular',
                       style: AppText.sans(
-                        size: 15,
-                        color: FeedColors.ink,
-                        weight: FontWeight.w700,
+                        size: 9,
+                        color: AppColors.ctaOnBg,
+                        weight: FontWeight.w800,
+                        height: 1,
                       ),
                     ),
-                    if (_perMonth != null) ...[
-                      const SizedBox(height: 2),
+                  ),
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        _perMonth!,
+                        _label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.sans(size: 14, color: AppColors.ink),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        _price,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: AppText.sans(
-                          size: 12.5,
-                          color: FeedColors.inkSoft,
+                          size: 17,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                          height: 1.05,
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Text(
-                package.storeProduct.priceString,
-                style: AppText.sans(
-                  size: 15,
-                  color: FeedColors.ink,
-                  weight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+                _SelectionDot(isSelected: isSelected),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _RadioDot extends StatelessWidget {
-  const _RadioDot({required this.selected});
+class _SelectionDot extends StatelessWidget {
+  const _SelectionDot({required this.isSelected});
 
-  final bool selected;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
-      height: 20,
-      width: 20,
+      width: 21,
+      height: 21,
       decoration: BoxDecoration(
+        color: isSelected ? AppColors.gold : AppColors.bg,
         shape: BoxShape.circle,
-        color: selected ? FeedColors.gold : Colors.transparent,
-        border: Border.all(
-          color: selected ? FeedColors.gold : FeedColors.inkFaint,
-          width: 1.6,
-        ),
+        border: Border.all(color: AppColors.track, width: 1.6),
       ),
-      child: selected
-          ? Icon(Icons.check, size: 13, color: FeedColors.bg)
+      child: isSelected
+          ? Icon(Icons.check_rounded, color: AppColors.ctaOnBg, size: 16)
           : null,
     );
   }
 }
 
-/// Cream pill matching the reviews screen's CTA, so the two read as one flow.
-class _PaywallCta extends StatelessWidget {
-  const _PaywallCta({
-    required this.label,
-    required this.busy,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool busy;
-  final VoidCallback? onPressed;
+class _CancelNotice extends StatelessWidget {
+  const _CancelNotice();
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null && !busy;
-
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: Material(
-        color: enabled ? FeedColors.ink : FeedColors.chip,
-        borderRadius: BorderRadius.circular(28),
-        child: InkWell(
-          onTap: enabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(28),
-          child: Center(
-            child: busy
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      valueColor: AlwaysStoppedAnimation(FeedColors.inkSoft),
-                    ),
-                  )
-                : Text(
-                    label,
-                    style: AppText.sans(
-                      size: 16.5,
-                      color: enabled ? FeedColors.bg : FeedColors.inkFaint,
-                      weight: FontWeight.w600,
-                      height: 1.1,
-                    ),
-                  ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.check_rounded, color: AppColors.ink, size: 24),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            'No commitment, cancel anytime on Google Play Subscriptions Page',
+            textAlign: TextAlign.left,
+            style: AppText.sans(size: 15, color: AppColors.ink, height: 1.35),
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
-/// Restore, terms and privacy. Small and quiet at the very bottom, as asked —
-/// but still a real 44pt-tall tap target on each link.
 class _LegalFooter extends StatelessWidget {
   const _LegalFooter({
     required this.onRestore,
@@ -578,55 +687,41 @@ class _LegalFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Apple requires the standard EULA link wherever a subscription is sold;
-    // Google has no such requirement, so Terms is iOS-only.
-    final showTerms = Theme.of(context).platform == TargetPlatform.iOS;
-
+    final showTerms = shouldShowLegalTerms(context);
     return Wrap(
       alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 15,
+      runSpacing: 2,
       children: [
-        _FooterLink(label: 'Restore', onTap: onRestore),
-        if (showTerms) ...[
-          const _FooterDot(),
-          _FooterLink(label: 'Terms', onTap: onTerms),
-        ],
-        const _FooterDot(),
-        _FooterLink(label: 'Privacy', onTap: onPrivacy),
+        _LegalLink(text: 'Restore', onTap: onRestore),
+        if (showTerms) _LegalLink(text: 'Terms', onTap: onTerms),
+        _LegalLink(text: 'Privacy', onTap: onPrivacy),
       ],
     );
   }
 }
 
-class _FooterLink extends StatelessWidget {
-  const _FooterLink({required this.label, required this.onTap});
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.text, required this.onTap});
 
-  final String label;
+  final String text;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        child: Text(
-          label,
-          style: AppText.sans(size: 11.5, color: FeedColors.inkFaint),
+      behavior: HitTestBehavior.opaque,
+      child: Opacity(
+        opacity: 0.62,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Text(
+            text,
+            style: AppText.sans(size: 11, color: AppColors.ink, height: 1.2),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _FooterDot extends StatelessWidget {
-  const _FooterDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      '·',
-      style: AppText.sans(size: 11.5, color: FeedColors.inkFaint),
     );
   }
 }

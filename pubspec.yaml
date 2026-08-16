@@ -1,4 +1,4 @@
-﻿name: muslim
+name: muslim
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -42,6 +42,9 @@ dependencies:
   purchases_flutter: ^10.9.0
   url_launcher: ^6.3.2
   lottie: ^3.3.1
+  flutter_local_notifications: ^22.3.0
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -103,8 +106,9 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/logo.png
-    - assets/themess/1.png
     - assets/animation/gift.json
+    - assets/app-custom-logos/
+    - assets/themes/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -131,3 +135,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+
+

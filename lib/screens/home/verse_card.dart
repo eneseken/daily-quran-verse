@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../core/feed_background.dart';
 import '../../models/quran_verse.dart';
 import '../../services/recitation_service.dart';
 import 'feed_theme.dart';
@@ -39,9 +40,18 @@ class VerseFeedShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = verse.ayahNumber / ayahCountInSurah;
+    final backgroundImage = FeedBackgroundController.instance.imagePath;
 
     return Container(
-      color: FeedColors.bg,
+      decoration: BoxDecoration(
+        color: FeedColors.bg,
+        image: backgroundImage == null
+            ? null
+            : DecorationImage(
+                image: AssetImage(backgroundImage),
+                fit: BoxFit.cover,
+              ),
+      ),
       child: SafeArea(
         child: Stack(
           children: [
@@ -166,15 +176,12 @@ class _ProfileFab extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Opacity(
-                opacity: 0,
-                child: Icon(
-                  Icons.person_outline,
-                  size: 28,
-                  color: FeedColors.bg,
-                ),
-              ),
               Icon(Icons.person, size: 28, color: FeedColors.bg),
+              const Icon(
+                Icons.person_outline,
+                size: 28,
+                color: Colors.transparent,
+              ),
             ],
           ),
         ),
@@ -183,17 +190,27 @@ class _ProfileFab extends StatelessWidget {
   }
 }
 
-/// One page of the feed ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â just the verse itself, since the surrounding
+/// One page of the feed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â just the verse itself, since the surrounding
 /// chrome lives in [VerseFeedShell] and does not scroll with it.
 ///
 /// Ayah lengths vary enormously (2:282 is roughly forty times 108:1), so the
 /// type is sized to the page rather than fixed: the largest scale at which
 /// Arabic, translation and reference all still fit is measured and used.
 class VersePage extends StatelessWidget {
-  const VersePage({super.key, required this.verse, required this.languageCode});
+  const VersePage({
+    super.key,
+    required this.verse,
+    required this.languageCode,
+    this.showArabic = true,
+  });
 
   final QuranVerse verse;
   final String languageCode;
+
+  /// When false, the Arabic block is omitted entirely ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â not just visually
+  /// hidden ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â so the fit-scaling below stops reserving height for it and the
+  /// translation gets to use that space instead.
+  final bool showArabic;
 
   /// Sizes for a short ayah, scaled down from here as the text grows.
   /// Public so tests can assert against the actual values used.
@@ -208,7 +225,7 @@ class VersePage extends StatelessWidget {
 
   /// Past this the verse stops being comfortably readable, so the longest
   /// ayahs settle here rather than shrinking into illegibility.
-  static const minScale = 0.45;
+  static const minScale = 0.34;
 
   double _heightAt(
     double scale,
@@ -216,14 +233,17 @@ class VersePage extends StatelessWidget {
     String translation,
     TextScaler scaler,
   ) {
-    return _measure(
-          verse.arabicText,
-          FeedText.arabic(size: arabicSize * scale),
-          maxWidth * _arabicWidthFactor,
-          scaler,
-          TextDirection.rtl,
-        ) +
-        _arabicGap * scale +
+    final arabicBlock = showArabic
+        ? _measure(
+                verse.arabicText,
+                FeedText.arabic(size: arabicSize * scale),
+                maxWidth * _arabicWidthFactor,
+                scaler,
+                TextDirection.rtl,
+              ) +
+              _arabicGap * scale
+        : 0.0;
+    return arabicBlock +
         _measure(
           translation,
           FeedText.quote(size: quoteSize * scale),
@@ -261,33 +281,30 @@ class VersePage extends StatelessWidget {
   /// available height even at the readability floor.
   ///
   /// The floor exists so long ayahs stay legible rather than shrinking to
-  /// nothing ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â but 2:282 (the longest ayah in the Quran) on the smallest
+  /// nothing ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â but 2:282 (the longest ayah in the Quran) on the smallest
   /// supported phones can still be taller than one page even at that floor.
   /// [overflows] tells the caller to fall back to letting the page scroll
   /// for that one rare combination, rather than clipping or violating the
   /// floor.
-  (double scale, bool overflows) _fitScale(
-    BoxConstraints constraints,
-    String translation,
-    TextScaler scaler,
-  ) {
-    if (!constraints.hasBoundedHeight || constraints.maxWidth <= 0) {
+  (double scale, bool overflows) _fitScale({
+    required double availableHeight,
+    required double maxWidth,
+    required String translation,
+    required TextScaler scaler,
+  }) {
+    if (availableHeight <= 0 || maxWidth <= 0) return (1, false);
+
+    if (_heightAt(1, maxWidth, translation, scaler) <= availableHeight) {
       return (1, false);
     }
 
-    final available = constraints.maxHeight;
-    if (_heightAt(1, constraints.maxWidth, translation, scaler) <= available) {
-      return (1, false);
-    }
-
-    // Ten halvings land within ~0.05% of the true crossover ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â far finer than
+    // Ten halvings land within ~0.05% of the true crossover ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â far finer than
     // a reader could notice, and cheap enough to redo on every layout.
     var fits = minScale;
     var tooBig = 1.0;
     for (var i = 0; i < 10; i++) {
       final mid = (fits + tooBig) / 2;
-      if (_heightAt(mid, constraints.maxWidth, translation, scaler) <=
-          available) {
+      if (_heightAt(mid, maxWidth, translation, scaler) <= availableHeight) {
         fits = mid;
       } else {
         tooBig = mid;
@@ -295,72 +312,96 @@ class VersePage extends StatelessWidget {
     }
 
     final floorFits =
-        _heightAt(minScale, constraints.maxWidth, translation, scaler) <=
-        available;
+        _heightAt(minScale, maxWidth, translation, scaler) <= availableHeight;
     return (fits, !floorFits);
   }
 
   @override
   Widget build(BuildContext context) {
     final translation = verse.textFor(languageCode);
-    final scaler = MediaQuery.textScalerOf(context);
+    const scaler = TextScaler.noScaling;
+    final media = MediaQuery.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final (scale, overflows) = _fitScale(
-            constraints,
-            translation,
-            scaler,
-          );
+    return MediaQuery(
+      data: media.copyWith(textScaler: scaler),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final fallbackHeight =
+                media.size.height - media.padding.vertical - 154;
+            final pageHeight = constraints.hasBoundedHeight
+                ? constraints.maxHeight
+                : fallbackHeight.clamp(320.0, double.infinity);
+            final pageWidth = constraints.hasBoundedWidth
+                ? constraints.maxWidth
+                : (media.size.width - 44).clamp(240.0, double.infinity);
+            final availableHeight = (pageHeight - 24).clamp(
+              240.0,
+              double.infinity,
+            );
+            final (scale, overflows) = _fitScale(
+              availableHeight: availableHeight,
+              maxWidth: pageWidth,
+              translation: translation,
+              scaler: scaler,
+            );
 
-          final column = Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FractionallySizedBox(
-                widthFactor: _arabicWidthFactor,
-                child: Text(
-                  verse.arabicText,
+            final column = Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showArabic) ...[
+                  FractionallySizedBox(
+                    widthFactor: _arabicWidthFactor,
+                    child: Text(
+                      verse.arabicText,
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      style: FeedText.arabic(size: arabicSize * scale),
+                    ),
+                  ),
+                  SizedBox(height: _arabicGap * scale),
+                ],
+                Text(
+                  translation,
                   textAlign: TextAlign.center,
-                  textDirection: TextDirection.rtl,
-                  style: FeedText.arabic(size: arabicSize * scale),
+                  style: FeedText.quote(size: quoteSize * scale),
+                ),
+                SizedBox(height: _referenceGap * scale),
+                Text(
+                  '\u2014 ${verse.reference}',
+                  textAlign: TextAlign.center,
+                  style: FeedText.reference(size: referenceSize * scale),
+                ),
+              ],
+            );
+
+            if (!overflows) {
+              return SizedBox(
+                height: pageHeight,
+                child: Center(child: column),
+              );
+            }
+
+            return SizedBox(
+              height: pageHeight,
+              child: SingleChildScrollView(
+                primary: false,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: pageHeight - 36),
+                  child: Center(child: column),
                 ),
               ),
-              SizedBox(height: _arabicGap * scale),
-              Text(
-                translation,
-                textAlign: TextAlign.center,
-                style: FeedText.quote(size: quoteSize * scale),
-              ),
-              SizedBox(height: _referenceGap * scale),
-              Text(
-                '\u2014 ${verse.reference}',
-                textAlign: TextAlign.center,
-                style: FeedText.reference(size: referenceSize * scale),
-              ),
-            ],
-          );
-
-          if (!overflows) return Center(child: column);
-
-          // Escape valve for that one pathological case: scrolling inside a
-          // vertical PageView page is otherwise avoided (drag would be
-          // ambiguous between paging and scrolling), but a few extra pixels
-          // of scroll on the single longest ayah beats clipped text.
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(child: column),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/// Small, low-contrast "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ 1/5 ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬" readout centered above the verse ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â never
+/// Small, low-contrast "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢Ãƒâ€šÃ‚Â¡ 1/5 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬" readout centered above the verse ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â never
 /// competes with the Arabic and translation for attention.
 class _TopIndicator extends StatelessWidget {
   const _TopIndicator({required this.label, required this.progress});
@@ -370,13 +411,23 @@ class _TopIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = FeedBackgroundController.instance.imagePath != null;
+    final chipColor = hasPhoto
+        ? (FeedBackgroundController.instance.usesDarkText
+              ? Colors.white.withValues(alpha: 0.42)
+              : Colors.black.withValues(alpha: 0.38))
+        : FeedColors.chip;
+    final chipBorder = hasPhoto
+        ? Colors.white.withValues(alpha: 0.55)
+        : FeedColors.chipBorder;
+
     return Container(
       height: 34,
       padding: const EdgeInsets.symmetric(horizontal: 11),
       decoration: BoxDecoration(
-        color: FeedColors.chip,
+        color: chipColor,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: FeedColors.chipBorder),
+        border: Border.all(color: chipBorder),
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -412,7 +463,7 @@ class _TopIndicator extends StatelessWidget {
 }
 
 /// Recite, share and like, bottom center. Plain outline icons with no
-/// background ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â they read as actions floating over the verse, not as UI
+/// background ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â they read as actions floating over the verse, not as UI
 /// chrome.
 class _VerseActions extends StatelessWidget {
   const _VerseActions({

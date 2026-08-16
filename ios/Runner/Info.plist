@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
@@ -8,6 +8,61 @@
 		<string>Daily Quran Verse</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIcons</key>
+		<dict>
+			<key>CFBundleAlternateIcons</key>
+			<dict>
+				<key>AppIconAlt1</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt1</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt1</string>
+				</dict>
+				<key>AppIconAlt2</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt2</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt2</string>
+				</dict>
+				<key>AppIconAlt3</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt3</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt3</string>
+				</dict>
+				<key>AppIconAlt4</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt4</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt4</string>
+				</dict>
+				<key>AppIconAlt5</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt5</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt5</string>
+				</dict>
+				<key>AppIconAlt6</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array><string>AppIconAlt6</string></array>
+					<key>CFBundleIconName</key>
+					<string>AppIconAlt6</string>
+				</dict>
+			</dict>
+			<key>CFBundlePrimaryIcon</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array><string>AppIcon</string></array>
+				<key>CFBundleIconName</key>
+				<string>AppIcon</string>
+			</dict>
+		</dict>
 		<key>CFBundleIdentifier</key>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 		<key>CFBundleInfoDictionaryVersion</key>

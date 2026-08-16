@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/feed_background.dart';
 import '../../core/theme.dart';
 
 /// Feed typography stays distinct, but its colors follow the app-wide
-/// light/dark palette so home, loading, and settings match onboarding.
+/// light/dark palette so home, loading, and settings match onboarding —
+/// unless a Customize screen background photo is active, in which case ink
+/// tones follow that photo's own contrast needs instead: a photo doesn't
+/// care what the system's light/dark setting is, only how bright it reads.
 class FeedColors {
   const FeedColors._();
 
@@ -12,9 +16,34 @@ class FeedColors {
   static Color get chip =>
       AppColors.isDark ? AppColors.chip : AppColors.bg.withValues(alpha: 0.5);
   static Color get chipBorder => AppColors.track;
-  static Color get ink => AppColors.ink;
-  static Color get inkSoft => AppColors.inkSoft;
-  static Color get inkFaint => AppColors.inkFaint;
+
+  static Color get ink {
+    if (FeedBackgroundController.instance.imagePath == null) {
+      return AppColors.ink;
+    }
+    return FeedBackgroundController.instance.usesDarkText
+        ? const Color(0xFF252320)
+        : Colors.white;
+  }
+
+  static Color get inkSoft {
+    if (FeedBackgroundController.instance.imagePath == null) {
+      return AppColors.inkSoft;
+    }
+    return FeedBackgroundController.instance.usesDarkText
+        ? const Color(0xFF252320).withValues(alpha: 0.72)
+        : Colors.white.withValues(alpha: 0.82);
+  }
+
+  static Color get inkFaint {
+    if (FeedBackgroundController.instance.imagePath == null) {
+      return AppColors.inkFaint;
+    }
+    return FeedBackgroundController.instance.usesDarkText
+        ? const Color(0xFF252320).withValues(alpha: 0.5)
+        : Colors.white.withValues(alpha: 0.6);
+  }
+
   static Color get gold => AppColors.gold;
   static Color get liked => AppColors.error;
   static Color get track => AppColors.track;

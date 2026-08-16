@@ -137,6 +137,36 @@ void main() {
     expect(find.textContaining('Al-Baqara'), findsOneWidget);
   });
 
+  testWidgets('hides the Arabic block entirely when showArabic is false',
+      (tester) async {
+    tester.view.physicalSize = _defaultSize * tester.view.devicePixelRatio;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: VerseFeedShell(
+          verse: _longVerse,
+          ayahCountInSurah: 286,
+          liked: false,
+          recitation: RecitationState.idle,
+          onToggleLike: () {},
+          onShare: () {},
+          onOpenSettings: () {},
+          onTogglePlayback: () {},
+          feed: VersePage(
+            verse: _longVerse,
+            languageCode: 'en',
+            showArabic: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(_longVerse.arabicText), findsNothing);
+    expect(find.textContaining('Al-Baqara'), findsOneWidget);
+  });
+
   testWidgets('renders the Turkish translation when that language is selected',
       (tester) async {
     await _pumpAtSize(

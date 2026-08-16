@@ -78,7 +78,7 @@ class AuthService {
     return row?['onboarding_completed'] == true;
   }
 
-  /// The subset of `profiles` the account screen displays — both columns
+  /// The subset of `profiles` the account screen displays â€” both columns
   /// were already collected during onboarding.
   Future<({String? name, String? sex})> fetchProfileSummary() async {
     final id = user?.id;
@@ -89,5 +89,15 @@ class AuthService {
         .eq('id', id)
         .maybeSingle();
     return (name: row?['name'] as String?, sex: row?['sex'] as String?);
+  }
+
+  /// Updates one or more columns on the caller's own profile row â€” used by
+  /// the account screen's Name/Gender edit screens. Upsert for the same
+  /// reason as [saveOnboarding]: safe even if the row somehow doesn't exist
+  /// yet.
+  Future<void> updateProfile(Map<String, dynamic> fields) async {
+    final id = user?.id;
+    if (id == null) return;
+    await _client.from('profiles').upsert({'id': id, ...fields});
   }
 }

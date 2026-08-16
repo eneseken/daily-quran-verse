@@ -2,10 +2,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../core/app_strings.dart';
+import '../core/legal_links.dart';
+import '../core/quran_language.dart';
 import '../core/theme.dart';
+import 'app_icon_screen.dart';
+import 'customize_screen.dart';
+import 'edit_gender_screen.dart';
+import 'edit_name_screen.dart';
 import '../services/auth_service.dart';
+import '../services/streak_service.dart';
 import 'followed_topics_screen.dart';
+import 'language_screen.dart';
+import 'notifications_screen.dart';
 import 'theme_screen.dart';
+import 'widgets_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -40,11 +51,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _name;
   String? _sex;
   bool _profileLoaded = false;
+  StreakSummary _streak = StreakSummary.zero;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadStreak();
+    // Rebuilds this screen's copy the instant the language changes, however
+    // it was changed — not just right after this screen's own Language row
+    // is used, so the "change takes effect immediately, everywhere" holds
+    // even if something else ever triggers a language change later.
+    QuranLanguageController.instance.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    QuranLanguageController.instance.removeListener(_onLanguageChanged);
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -55,6 +83,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _sex = summary.sex;
       _profileLoaded = true;
     });
+  }
+
+  Future<void> _loadStreak() async {
+    final streak = await StreakService.instance.fetchStreak();
+    if (!mounted) return;
+    setState(() => _streak = streak);
+  }
+
+  Future<void> _editName() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => EditNameScreen(initial: _name ?? '')),
+    );
+    if (result != null && mounted) setState(() => _name = result);
+  }
+
+  Future<void> _editGender() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => EditGenderScreen(name: _name ?? '', initial: _sex),
+      ),
+    );
+    if (result != null && mounted) setState(() => _sex = result);
   }
 
   Future<void> _signOut() async {
@@ -81,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 18),
               Center(
                 child: Text(
-                  'Profile',
+                  AppStrings.t('profile_title'),
                   style: AppText.serif(
                     size: 42,
                     color: ProfileScreen._ink,
@@ -92,11 +142,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 48),
               _UnlockCard(),
               const SizedBox(height: 16),
-              _StreakCard(),
+              _StreakCard(streak: _streak),
               const SizedBox(height: 52),
-              _sectionTitle('Quick actions'),
+              _sectionTitle(AppStrings.t('quick_actions')),
               const SizedBox(height: 20),
               _QuickGrid(
+                onRemindersTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  );
+                },
+                onWidgetsTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const WidgetsScreen()),
+                  );
+                },
+                onAppIconTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AppIconScreen()),
+                  );
+                },
                 onTopicsTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -106,56 +173,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               const SizedBox(height: 46),
-              _sectionTitle('Settings'),
+              _sectionTitle(AppStrings.t('settings')),
               const SizedBox(height: 22),
               _SettingsGroup(
+                onNameTap: _editName,
+                onGenderTap: _editGender,
+                onCustomizeTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CustomizeScreen()),
+                  );
+                },
                 onThemeTap: () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const ThemeScreen()),
                   );
                   if (mounted) setState(() {});
                 },
+                onLanguageTap: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LanguageScreen()),
+                  );
+                  if (mounted) setState(() {});
+                },
                 rows: [
                   _ProfileRowData(
                     Icons.person_outline,
-                    'Name',
+                    'name',
                     _profileLoaded
                         ? ((_name?.trim().isNotEmpty ?? false)
                               ? _name!.trim()
-                              : 'Not set')
+                              : AppStrings.t('not_set'))
                         : '',
                   ),
                   _ProfileRowData(
                     Icons.transgender,
-                    'Gender',
-                    _profileLoaded ? (_sex ?? 'Not set') : '',
+                    'gender',
+                    _profileLoaded ? (_sex ?? AppStrings.t('not_set')) : '',
+                  ),
+                  _ProfileRowData(
+                    Icons.language,
+                    'language',
+                    supportedQuranLanguages[QuranLanguageController.instance.code] ??
+                        QuranLanguageController.instance.code,
                   ),
                   _ProfileRowData(
                     Icons.brightness_6_outlined,
-                    'Theme',
-                    appThemeModeLabel(AppThemeController.instance.mode),
+                    'theme',
+                    AppStrings.t(
+                      'theme_${AppThemeController.instance.mode.name}',
+                    ),
                   ),
-                  const _ProfileRowData(
-                    Icons.credit_card,
-                    'Customer center',
-                    '',
-                  ),
-                  const _ProfileRowData(
-                    Icons.chat_bubble_outline,
-                    'Feedback',
-                    '',
-                  ),
+                  _ProfileRowData(Icons.wallpaper_outlined, 'customize', ''),
+                  _ProfileRowData(Icons.credit_card, 'customer_center', ''),
+                  _ProfileRowData(Icons.chat_bubble_outline, 'feedback', ''),
                 ],
               ),
               const SizedBox(height: 46),
-              _sectionTitle('Legal'),
+              _sectionTitle(AppStrings.t('legal')),
               const SizedBox(height: 22),
               _SettingsGroup(
-                rows: [
-                  _ProfileRowData(Icons.shield_outlined, 'Privacy Policy', ''),
+                onPrivacyTap: () => openLegalUrl(legalPrivacyUrl),
+                // Apple's standard EULA on iOS; Android has no equivalent
+                // page of its own, so this row opens the same privacy link
+                // there rather than dead-ending or disappearing.
+                onTermsTap: () => openLegalUrl(legalTermsUrlFor(context)),
+                rows: const [
+                  _ProfileRowData(Icons.shield_outlined, 'privacy_policy', ''),
                   _ProfileRowData(
                     Icons.description_outlined,
-                    'Terms of Use',
+                    'terms_of_use',
                     '',
                   ),
                 ],
@@ -197,7 +283,7 @@ class _SignOutButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Text(
-            'Sign out',
+            AppStrings.t('sign_out'),
             style: AppText.sans(
               size: 16,
               color: AppColors.error,
@@ -242,6 +328,7 @@ class _UnlockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       height: 130,
       decoration: BoxDecoration(
         color: ProfileScreen._gold,
@@ -263,12 +350,12 @@ class _UnlockCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            right: 25,
-            top: 34,
+            right: 19,
+            top: 48,
             child: Icon(
               Icons.menu_book_outlined,
-              size: 56,
-              color: Colors.black.withValues(alpha: 0.86),
+              size: 70,
+              color: Colors.black.withValues(alpha: 0.5),
             ),
           ),
           Padding(
@@ -278,14 +365,14 @@ class _UnlockCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Unlock everything',
+                  AppStrings.t('unlock_title'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.sans(size: 18, color: const Color(0xFF24211E)),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'All quotes, themes,\ncategories & no ads',
+                  AppStrings.t('unlock_subtitle'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.sans(
@@ -304,11 +391,17 @@ class _UnlockCard extends StatelessWidget {
 }
 
 class _StreakCard extends StatelessWidget {
-  const _StreakCard();
+  const _StreakCard({required this.streak});
+
+  final StreakSummary streak;
 
   @override
   Widget build(BuildContext context) {
-    const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    final days = AppStrings.weekdaysShort();
+    // DateTime.weekday is 1=Monday..7=Sunday; -1 lines it up with `days`
+    // (and with the server's week array, which uses the same order) so the
+    // bolded label is always today, not a hardcoded day.
+    final todayIndex = DateTime.now().weekday - 1;
     return Container(
       height: 134,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -319,13 +412,20 @@ class _StreakCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const _AnimatedSunBadge(),
+          _AnimatedSunBadge(count: streak.currentStreak),
           const SizedBox(width: 18),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final dotSize = ((constraints.maxWidth - 36) / 7).clamp(
-                  28.0,
+                // MainAxisAlignment.spaceBetween only distributes leftover
+                // space between children — it can't shrink them — so the
+                // only way to guarantee 7 dots never overflow a narrow card
+                // is to size each one off the full available width itself,
+                // not a fixed guess at how much room the gaps need. The
+                // upper clamp is purely cosmetic, to stop dots ballooning on
+                // wide screens.
+                final dotSize = (constraints.maxWidth / days.length).clamp(
+                  0.0,
                   34.0,
                 );
                 return Column(
@@ -334,18 +434,18 @@ class _StreakCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        for (final d in days)
+                        for (var i = 0; i < days.length; i++)
                           SizedBox(
                             width: dotSize,
                             child: Center(
                               child: Text(
-                                d,
+                                days[i],
                                 style: AppText.sans(
                                   size: 13,
-                                  color: d == 'Su'
+                                  color: i == todayIndex
                                       ? ProfileScreen._ink
                                       : ProfileScreen._faint,
-                                  weight: d == 'Su'
+                                  weight: i == todayIndex
                                       ? FontWeight.w700
                                       : FontWeight.w400,
                                 ),
@@ -359,7 +459,10 @@ class _StreakCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         for (var i = 0; i < 7; i++)
-                          _DayDot(checked: i >= 5, size: dotSize),
+                          _DayDot(
+                            checked: i < streak.week.length && streak.week[i],
+                            size: dotSize,
+                          ),
                       ],
                     ),
                   ],
@@ -374,7 +477,9 @@ class _StreakCard extends StatelessWidget {
 }
 
 class _AnimatedSunBadge extends StatefulWidget {
-  const _AnimatedSunBadge();
+  const _AnimatedSunBadge({required this.count});
+
+  final int count;
 
   @override
   State<_AnimatedSunBadge> createState() => _AnimatedSunBadgeState();
@@ -398,16 +503,20 @@ class _AnimatedSunBadgeState extends State<_AnimatedSunBadge>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return _SunBadge(rotation: _controller.value * math.pi * 2);
+        return _SunBadge(
+          rotation: _controller.value * math.pi * 2,
+          count: widget.count,
+        );
       },
     );
   }
 }
 
 class _SunBadge extends StatelessWidget {
-  const _SunBadge({required this.rotation});
+  const _SunBadge({required this.rotation, required this.count});
 
   final double rotation;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
@@ -433,7 +542,7 @@ class _SunBadge extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                '2',
+                '$count',
                 style: AppText.sans(
                   size: 26,
                   color: ProfileScreen._card,
@@ -532,9 +641,17 @@ Widget _sectionTitle(String text) => Text(
 );
 
 class _QuickGrid extends StatelessWidget {
-  const _QuickGrid({required this.onTopicsTap});
+  const _QuickGrid({
+    required this.onTopicsTap,
+    required this.onAppIconTap,
+    required this.onRemindersTap,
+    required this.onWidgetsTap,
+  });
 
   final VoidCallback onTopicsTap;
+  final VoidCallback onAppIconTap;
+  final VoidCallback onRemindersTap;
+  final VoidCallback onWidgetsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -544,14 +661,18 @@ class _QuickGrid extends StatelessWidget {
           children: [
             Expanded(
               child: _QuickCard(
-                title: 'Topics you\nfollow',
+                title: AppStrings.t('topics_you_follow'),
                 icon: Icons.bookmark_border,
                 onTap: onTopicsTap,
               ),
             ),
             SizedBox(width: 16),
             Expanded(
-              child: _QuickCard(title: 'App icon', icon: Icons.apps),
+              child: _QuickCard(
+                title: AppStrings.t('app_icon'),
+                icon: Icons.apps,
+                onTap: onAppIconTap,
+              ),
             ),
           ],
         ),
@@ -560,15 +681,17 @@ class _QuickGrid extends StatelessWidget {
           children: [
             Expanded(
               child: _QuickCard(
-                title: 'Reminders',
+                title: AppStrings.t('reminders'),
                 icon: Icons.notifications_none,
+                onTap: onRemindersTap,
               ),
             ),
             SizedBox(width: 16),
             Expanded(
               child: _QuickCard(
-                title: 'Widgets',
+                title: AppStrings.t('widgets'),
                 icon: Icons.grid_view_outlined,
+                onTap: onWidgetsTap,
               ),
             ),
           ],
@@ -627,18 +750,38 @@ class _QuickCard extends StatelessWidget {
 }
 
 class _ProfileRowData {
-  const _ProfileRowData(this.icon, this.label, this.value);
+  const _ProfileRowData(this.icon, this.labelKey, this.value);
 
   final IconData icon;
-  final String label;
+
+  /// An AppStrings key, not the display text itself — the label is rendered
+  /// via AppStrings.t(labelKey), and _SettingsGroup also dispatches taps by
+  /// this same stable key, so neither breaks when the displayed text
+  /// changes language.
+  final String labelKey;
   final String value;
 }
 
 class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.rows, this.onThemeTap});
+  const _SettingsGroup({
+    required this.rows,
+    this.onNameTap,
+    this.onGenderTap,
+    this.onLanguageTap,
+    this.onThemeTap,
+    this.onCustomizeTap,
+    this.onPrivacyTap,
+    this.onTermsTap,
+  });
 
   final List<_ProfileRowData> rows;
+  final VoidCallback? onNameTap;
+  final VoidCallback? onGenderTap;
+  final VoidCallback? onLanguageTap;
   final VoidCallback? onThemeTap;
+  final VoidCallback? onCustomizeTap;
+  final VoidCallback? onPrivacyTap;
+  final VoidCallback? onTermsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -654,7 +797,16 @@ class _SettingsGroup extends StatelessWidget {
             _SettingsRow(
               data: rows[i],
               showDivider: i != rows.length - 1,
-              onTap: rows[i].label == 'Theme' ? onThemeTap : null,
+              onTap: switch (rows[i].labelKey) {
+                'name' => onNameTap,
+                'gender' => onGenderTap,
+                'language' => onLanguageTap,
+                'theme' => onThemeTap,
+                'customize' => onCustomizeTap,
+                'privacy_policy' => onPrivacyTap,
+                'terms_of_use' => onTermsTap,
+                _ => null,
+              },
             ),
         ],
       ),
@@ -690,7 +842,7 @@ class _SettingsRow extends StatelessWidget {
                   const SizedBox(width: 18),
                   Expanded(
                     child: Text(
-                      data.label,
+                      AppStrings.t(data.labelKey),
                       style: AppText.sans(size: 19, color: ProfileScreen._ink),
                     ),
                   ),

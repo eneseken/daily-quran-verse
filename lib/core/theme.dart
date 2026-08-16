@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// One full set of theme colors. `AppColors` swaps between [light] and [dark]
-/// instances at runtime Ã¢â‚¬â€ see [AppColors.apply].
+/// instances at runtime — see [AppColors.apply].
 class AppPalette {
   const AppPalette({
     required this.bg,
@@ -26,7 +26,7 @@ class AppPalette {
   final Color surface;
   final Color surfaceSoft;
 
-  /// Small elevated chip sitting on top of a card Ã¢â‚¬â€ pure white on the cream
+  /// Small elevated chip sitting on top of a card — pure white on the cream
   /// theme, a lighter-than-surface tone on the dark one.
   final Color chip;
 
@@ -44,7 +44,7 @@ class AppPalette {
   final Color track;
   final Color error;
 
-  /// Warm cream paper, muted clay surfaces, near-black ink Ã¢â‚¬â€ the reference
+  /// Warm cream paper, muted clay surfaces, near-black ink — the reference
   /// design as given.
   static const light = AppPalette(
     bg: Color(0xFFF1EDE5),
@@ -83,7 +83,7 @@ class AppPalette {
 
 /// Palette accessors used throughout the app. Backed by a mutable current
 /// [AppPalette] so the whole tree can flip between light and dark without
-/// threading a `BuildContext` through every helper Ã¢â‚¬â€ call [apply] once from
+/// threading a `BuildContext` through every helper — call [apply] once from
 /// the root widget whenever the desired brightness changes, then rebuild.
 class AppColors {
   const AppColors._();
@@ -110,7 +110,7 @@ class AppColors {
   static Color get track => _palette.track;
   static Color get error => _palette.error;
 
-  /// Literal white Ã¢â‚¬â€ used only for spots that stay bright regardless of theme
+  /// Literal white — used only for spots that stay bright regardless of theme
   /// (the welcome screen's CTA over its fixed photo, checkmarks on gold).
   static const white = Color(0xFFFFFFFF);
 }
@@ -203,7 +203,7 @@ class AppThemeScope extends InheritedNotifier<AppThemeController> {
 }
 
 /// True when the system theme is dark, or when it's evening/night locally
-/// (19:00Ã¢â‚¬â€œ06:00) Ã¢â‚¬â€ either is reason enough to open onboarding in dark mode.
+/// (19:00–06:00) — either is reason enough to open onboarding in dark mode.
 bool computeSystemIsDark() {
   final systemDark =
       WidgetsBinding.instance.platformDispatcher.platformBrightness ==
@@ -223,7 +223,7 @@ void syncStatusBarStyle(bool dark) {
   );
 }
 
-/// Serif for headings, grotesque for everything else Ã¢â‚¬â€ as in the design.
+/// Serif for headings, grotesque for everything else — as in the design.
 class AppText {
   const AppText._();
 
@@ -264,7 +264,7 @@ class AppText {
     height: 1.2,
   );
 
-  /// Chunky rounded numeral for the streak count on the sun badge Ã¢â‚¬â€ reads
+  /// Chunky rounded numeral for the streak count on the sun badge — reads
   /// friendlier and punchier at a glance than the serif heading font.
   static TextStyle numeral({
     double size = 34,

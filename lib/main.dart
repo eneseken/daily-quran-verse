@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/feed_background.dart';
 import 'core/supabase_config.dart';
 import 'core/theme.dart';
 import 'models/onboarding_data.dart';
@@ -12,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
 import 'screens/paywall_screen.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'services/subscription_service.dart';
 import 'widgets/breathing_loader.dart';
 
@@ -23,6 +25,8 @@ Future<void> main() async {
   // Paint the very first frame with the saved palette already applied, so
   // there's no light-then-dark flash on launch.
   await AppThemeController.instance.restore();
+  await FeedBackgroundController.instance.restore();
+  await NotificationService.instance.initialize();
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
@@ -78,8 +82,8 @@ class _MuslimAppState extends State<MuslimApp> {
 }
 
 /// Decides what the user sees: onboarding, auth, or home. Also the single
-/// place watching for brightness changes ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â system dark mode or the evening
-/// window ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â and re-applying [AppColors] for the whole tree.
+/// place watching for brightness changes ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â system dark mode or the evening
+/// window ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â and re-applying [AppColors] for the whole tree.
 class RootGate extends StatefulWidget {
   const RootGate({super.key});
 
@@ -90,6 +94,7 @@ class RootGate extends StatefulWidget {
 class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
   bool _loading = true;
   bool _onboardingSeen = false;
+  bool _notificationsSynced = false;
 
   /// Answers waiting to be attached to a brand new account.
   OnboardingData? _pendingAnswers;
@@ -116,7 +121,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
   void didChangePlatformBrightness() => _syncBrightness();
 
   /// Covers "opened the app in the evening" even when the OS setting itself
-  /// hasn't changed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â re-checked every time the app comes back to the
+  /// hasn't changed ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â re-checked every time the app comes back to the
   /// foreground.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -132,9 +137,26 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _rememberAuthenticatedUser() async {
+    if (_onboardingSeen && _pendingAnswers == null) return;
+    if (!_onboardingSeen) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_onboardingSeenKey, true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _onboardingSeen = true;
+      _pendingAnswers = null;
+    });
+  }
+
   Future<void> _finishOnboarding(OnboardingData data) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onboardingSeenKey, true);
+    await NotificationService.instance.saveReminderWindow(
+      startHour: data.reminderStartHour,
+      endHour: data.reminderEndHour,
+    );
     if (!mounted) return;
     setState(() {
       _onboardingSeen = true;
@@ -151,13 +173,27 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
       builder: (context, snapshot) {
         final session = snapshot.data?.session ?? AuthService.instance.session;
 
-        if (session != null) return const _SignedIn();
+        if (session != null) {
+          unawaited(_rememberAuthenticatedUser());
+          if (!_notificationsSynced) {
+            _notificationsSynced = true;
+            unawaited(
+              NotificationService.instance.syncScheduledNotifications(),
+            );
+          }
+          return const _SignedIn();
+        }
+
+        _notificationsSynced = false;
 
         if (!_onboardingSeen) {
           return OnboardingFlow(onComplete: _finishOnboarding);
         }
 
-        return AuthScreen(onboarding: _pendingAnswers);
+        return AuthScreen(
+          onboarding: _pendingAnswers,
+          onAuthenticated: () => setState(() => _pendingAnswers = null),
+        );
       },
     );
   }
@@ -176,7 +212,7 @@ class _SignedIn extends StatefulWidget {
 }
 
 class _SignedInState extends State<_SignedIn> {
-  /// Guards against showing the paywall twice ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â on a rebuild, or when
+  /// Guards against showing the paywall twice ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â on a rebuild, or when
   /// RevenueCat's entitlement callback lands after the first frame.
   bool _offerShown = false;
 
