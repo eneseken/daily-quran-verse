@@ -43,13 +43,14 @@ workflows:
         certificates:
           - cert
         provisioning_profiles:
-          - pppp
+          - profile: pppp
+            environment_variable: APP_STORE_PROFILE
     scripts:
       - name: Set up code signing
         script: |
           keychain initialize
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --project ios/Runner.xcodeproj --profile "$APP_STORE_PROFILE"
       - name: Fetch packages
         script: flutter pub get
       - name: Analyze
