@@ -5,10 +5,6 @@ definitions:
     cocoapods: default
 
 workflows:
-  # ---------------------------------------------------------------------------
-  # Unsigned build - runs immediately, no Apple Developer account required.
-  # Use this to confirm the iOS target compiles on CI.
-  # ---------------------------------------------------------------------------
   ios-unsigned:
     name: iOS build (unsigned)
     instance_type: mac_mini_m2
@@ -27,10 +23,6 @@ workflows:
     artifacts:
       - build/ios/iphoneos/*.app
 
-  # ---------------------------------------------------------------------------
-  # Signed release to TestFlight. Uses the uploaded Codemagic code signing
-  # identities named `cert` and `pppp`.
-  # ---------------------------------------------------------------------------
   ios-release:
     name: iOS release (TestFlight)
     instance_type: mac_mini_m2
@@ -46,11 +38,10 @@ workflows:
           - profile: pppp
             environment_variable: APP_STORE_PROFILE
     scripts:
-      - name: Set up code signing
+      - name: Set up keychain
         script: |
           keychain initialize
           keychain add-certificates
-          xcode-project use-profiles --project ios/Runner.xcodeproj --profile "$APP_STORE_PROFILE"
       - name: Fetch packages
         script: flutter pub get
       - name: Analyze
@@ -63,7 +54,7 @@ workflows:
         script: |
           flutter build ipa --release \
             --build-number=$PROJECT_BUILD_NUMBER \
-            --export-options-plist=/Users/builder/export_options.plist
+            --export-options-plist=ios/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
