@@ -45,6 +45,7 @@ workflows:
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+          ls -l "$HOME/export_options.plist"
       - name: Fetch packages
         script: flutter pub get
       - name: Analyze
@@ -56,8 +57,7 @@ workflows:
       - name: Build signed .ipa
         script: |
           flutter build ipa --release \
-            --build-number=$PROJECT_BUILD_NUMBER \
-            --export-options-plist=ios/export_options.plist
+            --export-options-plist="$HOME/export_options.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
