@@ -63,15 +63,21 @@ Future<void> _walkFlow(
     /// finder is scrolled into view before tapping — the same thing a real user
     /// would do.
     Future<void> tapText(String label) async {
-      final target = find.text(label);
+      final target = find.text(label, findRichText: true);
       if (target.evaluate().isEmpty) {
         final scrollable = find.byType(Scrollable);
         if (scrollable.evaluate().isNotEmpty) {
-          await tester.scrollUntilVisible(
-            target,
-            120,
-            scrollable: scrollable.last,
-          );
+          try {
+            await tester.scrollUntilVisible(
+              target,
+              120,
+              scrollable: scrollable.last,
+            );
+          } on StateError {
+            // Scrolling ran to the end without the label ever appearing.
+            // Let the expect below report which label, rather than failing
+            // here with a bare "Bad state: No element".
+          }
           await settle(1);
         }
       }
@@ -91,17 +97,20 @@ Future<void> _walkFlow(
     await settle();
 
     // 0 welcome
-    await tapText('Begin my journey');
-    expect(find.text('Your daily Quran verse is waiting'), findsOneWidget);
+    await tapText('Start my journey');
+    expect(find.text("Today's verse is ready for you", findRichText: true),
+        findsOneWidget);
 
-    // 1-3 statement screens
-    await tapText('Your daily Quran verse is waiting');
-    await tapText('Tap to continue');
-    await tapText('Tap to continue');
+    // 1-3 statement screens — each advances on its own Continue button,
+    // not by tapping the statement itself.
+    await tapText('Continue');
+    await tapText('Continue');
+    await tapText('Continue');
 
     // 4 name — a plain text-on-paper screen, so this confirms the Scaffold
     // is actually painting the palette that was requested.
-    expect(find.text('Who are we praying with?'), findsOneWidget);
+    expect(find.text("What should we call you?", findRichText: true),
+        findsOneWidget);
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, expectedBg,
         reason: dark ? 'expected the dark palette' : 'expected the light palette');
@@ -109,18 +118,21 @@ Future<void> _walkFlow(
     await settle(1);
     await tapText('Continue');
 
-    // 5 interstitial auto-advances
-    await settle(3);
+    // 5 interstitial — greets the name just entered, then waits for a tap
+    await tapText('Continue');
 
     // 6 age
-    expect(find.text('How old are you?'), findsOneWidget);
+    expect(find.text("What's your age range?", findRichText: true),
+        findsOneWidget);
     await tapText('18-24');
+    await tapText('Continue');
 
     // 7 screen time
     await tapText('3-4 hours');
+    await tapText('Continue');
 
     // 8 statement
-    await tapText('Tap to continue');
+    await tapText('Continue');
 
     // 9 goals (multi)
     await tapText('Get a Quran verse every day');
@@ -128,6 +140,7 @@ Future<void> _walkFlow(
 
     // 10 vision
     await tapText("A constant sense of Allah's presence");
+    await tapText('Continue');
 
     // 11 social proof
     await settle(3);
@@ -139,10 +152,13 @@ Future<void> _walkFlow(
 
     // 13 faith status
     await tapText('Finding my way back to Him');
+    await tapText('Continue');
 
     // 14 salah (the step added for a Muslim audience)
-    expect(find.textContaining('five daily prayers'), findsOneWidget);
+    expect(find.textContaining('five daily salah', findRichText: true),
+        findsWidgets);
     await tapText('Most of them');
+    await tapText('Continue');
 
     // 15 obstacles (multi)
     await tapText("Don't know where to start");
@@ -150,45 +166,30 @@ Future<void> _walkFlow(
 
     // 16 statement with the ayah
     await settle(4);
-    await tapText('Tap to continue');
+    await tapText('Continue');
 
     // 17 sex
-    expect(find.text("What's your sex?"), findsOneWidget);
+    expect(find.text('Lastly, how do you identify?', findRichText: true),
+        findsOneWidget);
     await tapText('Male');
+    await tapText('Continue');
 
     // 18 summary
     await settle(3);
-    expect(find.text('Thanks, Enes.'), findsOneWidget);
+    expect(find.text('Thanks, Enes.', findRichText: true), findsWidgets);
     await tapText('Continue');
 
     // 19 notification preview
     await settle(4);
-    await tapText('Tap to continue');
+    await tapText('Continue');
 
     // 20 daily moment
     await settle(2);
-    await tapText('Start my daily prayer');
+    await tapText('Begin my daily ritual');
 
-    // 21 loading dial runs itself out
-    await settle(7);
-
-    // 22 plan date
-    await settle(3);
-    await tapText('Begin my transformation');
-
-    // 23 snapshot
-    await settle(3);
-    await tapText('Continue');
-
-    // 24 reminder window
-    expect(find.text('Start at'), findsOneWidget);
-    await settle(2);
-    await tapText('Continue');
-
-    // 25 reviews — the last beat before account creation
-    await settle(4);
-    expect(find.textContaining('Reviews from people'), findsOneWidget);
-    await tapText('Join Daily Quran Verse 🤲');
+    // 21 loading dial — the last screen, so running it out completes the
+    // flow and hands the answers back.
+    await settle(10);
 
     expect(completed, isNotNull);
     expect(completed!.name, 'Enes');

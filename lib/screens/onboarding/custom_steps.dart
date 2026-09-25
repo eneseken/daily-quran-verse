@@ -765,87 +765,100 @@ class DailyMomentStep extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: kPagePadding,
+        // The streak sun, the copy and the week strip add up to a fixed
+        // height that a short screen (360x640) can't fit. Pin the top bar
+        // and the button to the edges and let everything between them
+        // scroll, so the content is reachable when it doesn't fit and
+        // sits centred when it does.
         child: Column(
           children: [
             const SizedBox(height: 8),
             OnboardingTopBar(progress: progress, onBack: onBack),
-            const Spacer(),
-            Reveal(child: const StreakSun(count: 1)),
-            const SizedBox(height: 28),
-            Reveal(
-              delay: const Duration(milliseconds: 520),
-              child: Text(
-                'A small ritual, every day',
-                style: AppText.sans(
-                  size: 24,
-                  color: AppColors.ink,
-                  weight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Reveal(
-              delay: const Duration(milliseconds: 900),
-              child: Text(
-                "Open the app and your streak and today's du'a are right there "
-                'waiting for you.',
-                textAlign: TextAlign.center,
-                style: AppText.sans(size: 15.5),
-              ),
-            ),
-            const SizedBox(height: 26),
-            Reveal(
-              delay: const Duration(milliseconds: 1280),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
                   children: [
-                    for (var i = 0; i < 7; i++)
-                      Column(
-                        children: [
-                          Text(
-                            ordered[i],
-                            style: AppText.sans(
-                              size: 12.5,
-                              color: i == 0
-                                  ? AppColors.ink
-                                  : AppColors.inkFaint,
-                              weight: i == 0
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: 26,
-                            width: 26,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: i == 0 ? AppColors.gold : AppColors.chip,
-                            ),
-                            child: i == 0
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 15,
-                                    color: AppColors.white,
-                                  )
-                                : null,
-                          ),
-                        ],
+                    const SizedBox(height: 24),
+                    Reveal(child: const StreakSun(count: 1)),
+                    const SizedBox(height: 28),
+                    Reveal(
+                      delay: const Duration(milliseconds: 520),
+                      child: Text(
+                        'A small ritual, every day',
+                        style: AppText.sans(
+                          size: 24,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Reveal(
+                      delay: const Duration(milliseconds: 900),
+                      child: Text(
+                        "Open the app and your streak and today's du'a are right there "
+                        'waiting for you.',
+                        textAlign: TextAlign.center,
+                        style: AppText.sans(size: 15.5),
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+                    Reveal(
+                      delay: const Duration(milliseconds: 1280),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            for (var i = 0; i < 7; i++)
+                              Column(
+                                children: [
+                                  Text(
+                                    ordered[i],
+                                    style: AppText.sans(
+                                      size: 12.5,
+                                      color: i == 0
+                                          ? AppColors.ink
+                                          : AppColors.inkFaint,
+                                      weight: i == 0
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    height: 26,
+                                    width: 26,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: i == 0 ? AppColors.gold : AppColors.chip,
+                                    ),
+                                    child: i == 0
+                                        ? const Icon(
+                                            Icons.check,
+                                            size: 15,
+                                            color: AppColors.white,
+                                          )
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
-            const Spacer(),
             PrimaryButton(
               label: 'Begin my daily ritual',
               dark: false,

@@ -16,7 +16,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
 
     expect(find.text('Daily Quran Verse'), findsOneWidget);
-    expect(find.text('Begin my journey'), findsOneWidget);
+    expect(find.text('Start my journey'), findsOneWidget);
   });
 
   testWidgets('welcome advances into the flow', (tester) async {
@@ -28,9 +28,9 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 2));
 
-    await tester.tap(find.text('Begin my journey'));
+    await tester.tap(find.text('Start my journey'));
     await tester.pump(const Duration(seconds: 2));
 
-    expect(find.text('Your daily Quran verse is waiting'), findsOneWidget);
+    expect(find.text("Today's verse is ready for you"), findsOneWidget);
   });
 }
