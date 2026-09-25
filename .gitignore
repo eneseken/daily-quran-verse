@@ -57,3 +57,10 @@ app.*.map.json
 key.properties
 .env
 .env.*
+
+# Debug screenshots dropped in the project root by `flutter screenshot`
+flutter_*.png
+
+# App Store listing screenshots — uploaded to App Store Connect by hand,
+# not bundled into the app (see pubspec assets), and ~100MB of PNGs.
+assets/store/

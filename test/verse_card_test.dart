@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muslim/models/quran_verse.dart';
+import 'package:muslim/models/surah.dart';
 import 'package:muslim/screens/home/verse_card.dart';
 import 'package:muslim/services/recitation_service.dart';
+
+/// Wraps a single ayah as the one-verse surah it is shown inside — the
+/// shell names the surah above the ayah, so every pump needs one.
+Surah _surahOf(QuranVerse verse) => Surah(
+      number: verse.surahNumber,
+      nameArabic: verse.surahNameArabic,
+      nameEnglish: verse.surahNameEnglish,
+      nameTranslation: verse.surahNameTranslation,
+      revelationType: verse.revelationType,
+      verses: [verse],
+    );
 
 /// Ayat al-Kursi (2:255) — one of the longest single ayahs in the Quran, so a
 /// layout that survives this survives everything shorter.
@@ -93,6 +105,7 @@ Widget _shell(
   return MaterialApp(
     home: VerseFeedShell(
       verse: verse,
+      surah: _surahOf(verse),
       ayahCountInSurah: 286,
       liked: false,
       recitation: recitation,
@@ -100,7 +113,7 @@ Widget _shell(
       onShare: onShare ?? () {},
       onOpenSettings: onOpenSettings ?? () {},
       onTogglePlayback: onTogglePlayback ?? () {},
-      feed: VersePage(verse: verse, languageCode: language),
+      feed: AyahPage(verse: verse, languageCode: language),
     ),
   );
 }
@@ -124,6 +137,31 @@ Future<void> _pumpAtSize(
   );
 }
 
+/// 98:1 (Al-Bayyinah) with a long Turkish translation — a real case that
+/// overflowed the page on a phone-sized screen, kept as a regression test
+/// for the fit-scaling now that the surah title sits in the fixed chrome
+/// above the ayah rather than inside the paging area.
+final _openingAyahWithLongTranslation = QuranVerse(
+  id: 6128,
+  globalAyahNumber: 6128,
+  surahNumber: 98,
+  ayahNumber: 1,
+  surahNameArabic: 'البينة',
+  surahNameEnglish: 'Al-Bayyinah',
+  surahNameTranslation: 'The Evidence',
+  revelationType: 'Medinan',
+  arabicText:
+      'لَمْ يَكُنِ الَّذِينَ كَفَرُوا مِنْ أَهْلِ الْكِتَابِ وَالْمُشْرِكِينَ مُنفَكِّينَ حَتَّىٰ '
+      'تَأْتِيَهُمُ الْبَيِّنَةُ',
+  translations: {
+    'tr':
+        'Kitap ehlinden ve ortak koşanlardan inkarcılar, kendilerine apaçık '
+        'bir belge, içinde kesin ve en doğru hükümlerin bulunduğu arınmış '
+        'sahifeleri okuyan, Allah katından bir elçi gelinceye kadar '
+        '(küfürden) ayrılacak değillerdi.',
+  },
+);
+
 /// The size every non-size-specific test runs at, matching a current iPhone.
 const _defaultSize = Size(390, 844);
 
@@ -135,8 +173,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Al-Baqara'), findsOneWidget);
+    expect(find.textContaining('The Cow'), findsOneWidget);
   });
+
+  testWidgets(
+    'renders a long translation under the surah title without overflow',
+    (tester) async {
+      // The pinned surah title eats into the height the ayah has to fit
+      // in, so this guards the fit-scaling against the case that produced
+      // a "BOTTOM OVERFLOWED" banner on a real device.
+      await _pumpAtSize(
+        tester,
+        _openingAyahWithLongTranslation,
+        logicalSize: const Size(390, 674),
+        language: 'tr',
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('The Evidence'), findsOneWidget);
+    },
+  );
 
   testWidgets('hides the Arabic block entirely when showArabic is false', (
     tester,
@@ -147,6 +204,7 @@ void main() {
       MaterialApp(
         home: VerseFeedShell(
           verse: _longVerse,
+          surah: _surahOf(_longVerse),
           ayahCountInSurah: 286,
           liked: false,
           recitation: RecitationState.idle,
@@ -154,7 +212,7 @@ void main() {
           onShare: () {},
           onOpenSettings: () {},
           onTogglePlayback: () {},
-          feed: VersePage(
+          feed: AyahPage(
             verse: _longVerse,
             languageCode: 'en',
             showArabic: false,
@@ -166,7 +224,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(_longVerse.arabicText), findsNothing);
-    expect(find.textContaining('Al-Baqara'), findsOneWidget);
+    expect(find.textContaining('The Cow'), findsOneWidget);
   });
 
   testWidgets(
@@ -269,7 +327,7 @@ void main() {
         // floor doesn't fit a page is to let that page scroll, not to clip.
         expect(tester.takeException(), isNull);
         expect(find.text(_longestAyah.arabicText), findsOneWidget);
-        expect(find.textContaining('Al-Baqara'), findsOneWidget);
+        expect(find.textContaining('The Cow'), findsOneWidget);
       },
     );
 
@@ -284,7 +342,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final arabic = tester.widget<Text>(find.text(_longVerse.arabicText));
-      expect(arabic.style!.fontSize, VersePage.arabicSize);
+      expect(arabic.style!.fontSize, AyahPage.arabicSize);
     });
 
     testWidgets('the longest ayah renders visibly smaller than a short one', (
@@ -294,7 +352,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final arabic = tester.widget<Text>(find.text(_longestAyah.arabicText));
-      expect(arabic.style!.fontSize, lessThan(VersePage.arabicSize));
+      expect(arabic.style!.fontSize, lessThan(AyahPage.arabicSize));
     });
 
     testWidgets('never shrinks past the readability floor', (tester) async {
@@ -309,7 +367,7 @@ void main() {
       final arabic = tester.widget<Text>(find.text(_longestAyah.arabicText));
       expect(
         arabic.style!.fontSize,
-        greaterThanOrEqualTo(VersePage.arabicSize * VersePage.minScale - 0.01),
+        greaterThanOrEqualTo(AyahPage.arabicSize * AyahPage.minScale - 0.01),
       );
     });
 

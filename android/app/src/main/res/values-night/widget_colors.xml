@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors AppPalette.dark in lib/core/theme.dart. -->
+<resources>
+    <color name="widget_bg">#272624</color>
+    <color name="widget_card">#3B352F</color>
+    <color name="widget_ink">#F1EADD</color>
+    <color name="widget_ink_soft">#B6AFA3</color>
+    <color name="widget_gold">#F6CC83</color>
+</resources>

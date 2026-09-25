@@ -165,17 +165,21 @@ class _StampProofCardState extends State<_StampProofCard>
         ),
         child: Column(
           children: [
-            Text("WHERE YOU'RE HEADED", style: AppText.overline(color: muted)),
+            Text('YOUR DESTINATION', style: AppText.overline(color: muted)),
             const SizedBox(height: 10),
             Text(
               '🌿 ${widget.vision}',
               textAlign: TextAlign.center,
-              style: AppText.serif(size: 18, color: AppColors.ctaOnBg),
+              style: AppText.sans(
+                size: 17,
+                color: AppColors.ctaOnBg,
+                weight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
-              'Thousands use Daily Quran Verse to start their day '
-              'with the Book of Allah',
+              'Thousands begin their morning with Daily Quran Verse '
+              'and the Book of Allah',
               textAlign: TextAlign.center,
               style: AppText.sans(size: 13.5, color: AppColors.gold),
             ),
@@ -264,9 +268,10 @@ class WelcomeStep extends StatelessWidget {
                   child: Text(
                     'Daily Quran Verse',
                     textAlign: TextAlign.center,
-                    style: AppText.serif(
-                      size: 42,
+                    style: AppText.sans(
+                      size: 36,
                       color: AppColors.white,
+                      weight: FontWeight.w700,
                       height: 1.16,
                     ),
                   ),
@@ -276,7 +281,7 @@ class WelcomeStep extends StatelessWidget {
                   delay: const Duration(milliseconds: 520),
                   duration: const Duration(milliseconds: 900),
                   child: Text(
-                    'Allah is always by your side',
+                    'You are never far from Allah',
                     textAlign: TextAlign.center,
                     style: AppText.sans(
                       size: 16,
@@ -288,7 +293,7 @@ class WelcomeStep extends StatelessWidget {
                 _DelayedStampIn(
                   delay: const Duration(milliseconds: 1250),
                   child: LightButton(
-                    label: 'Begin my journey',
+                    label: 'Start my journey',
                     onPressed: onNext,
                   ),
                 ),
@@ -307,10 +312,18 @@ class WelcomeStep extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class SocialProofStep extends StatelessWidget {
-  const SocialProofStep({super.key, required this.data, required this.onNext});
+  const SocialProofStep({
+    super.key,
+    required this.data,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final OnboardingData data;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -324,6 +337,9 @@ class SocialProofStep extends StatelessWidget {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
+            const SizedBox(height: 8),
             Expanded(
               child: SingleChildScrollView(
                 child: RevealColumn(
@@ -345,8 +361,8 @@ class SocialProofStep extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              "We'll help you keep that daily verse rhythm with "
-                              'gentle reminders, widgets, and satisfying streaks',
+                              "We'll help that rhythm stick with soft reminders, "
+                              'home-screen widgets, and streaks worth keeping',
                               style: AppText.sans(size: 14),
                             ),
                           ],
@@ -363,15 +379,19 @@ class SocialProofStep extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Text(
-                        "You're in the right place!",
-                        style: AppText.serif(size: 26),
+                        "You've come to the right place",
+                        style: AppText.sans(
+                          size: 24,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Text(
-                        'Thousands use Daily Quran Verse to start their day with '
-                        'the words of Allah',
+                        'Thousands open Daily Quran Verse each morning to begin '
+                        'their day with the words of Allah',
                         style: AppText.sans(size: 15),
                       ),
                     ),
@@ -379,10 +399,7 @@ class SocialProofStep extends StatelessWidget {
                 ),
               ),
             ),
-            DelayedFade(
-              delay: const Duration(milliseconds: 2400),
-              child: PrimaryButton(label: 'Continue', onPressed: onNext),
-            ),
+            PrimaryButton(label: 'Continue', onPressed: onNext),
             const SizedBox(height: 18),
           ],
         ),
@@ -396,10 +413,18 @@ class SocialProofStep extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class SummaryStep extends StatelessWidget {
-  const SummaryStep({super.key, required this.data, required this.onNext});
+  const SummaryStep({
+    super.key,
+    required this.data,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final OnboardingData data;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   Widget _card(String label, String value, {bool bullet = false}) {
     return Padding(
@@ -431,6 +456,9 @@ class SummaryStep extends StatelessWidget {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
+            const SizedBox(height: 8),
             Expanded(
               child: SingleChildScrollView(
                 child: RevealColumn(
@@ -440,26 +468,30 @@ class SummaryStep extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 28, bottom: 8),
                       child: Text(
                         'Thanks, ${data.displayName}.',
-                        style: AppText.serif(size: 28),
+                        style: AppText.sans(
+                          size: 25,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 22),
                       child: Text(
-                        "Based on what you've shared, here's your journey.",
+                        "Here's what your answers tell us about your journey.",
                         style: AppText.sans(size: 15),
                       ),
                     ),
                     _card(
-                      'WHERE YOU WANT TO GO',
+                      'YOUR DESTINATION',
                       '🌿 ${data.vision ?? "A constant sense of Allah's presence"}',
                     ),
                     _card(
-                      'WHERE YOU ARE NOW',
+                      'WHERE YOU STAND TODAY',
                       '🌱 ${data.faithStatus ?? "Finding my way back to Him"}',
                     ),
                     _card(
-                      "WHAT'S STANDING IN THE WAY",
+                      "WHAT'S BEEN HOLDING YOU BACK",
                       '🧭 $obstacle',
                       bullet: true,
                     ),
@@ -468,9 +500,9 @@ class SummaryStep extends StatelessWidget {
                       child: Text.rich(
                         TextSpan(
                           children: markup(
-                            '**${data.displayName}**, we see where you are and where '
-                            'you want to go. Together, we\'ll build a personal daily '
-                            'verse plan to help you grow stronger in your iman.',
+                            '**${data.displayName}**, we can see both where you stand '
+                            "and where you're headed. Together we'll shape a daily "
+                            'verse routine to help your iman grow stronger.',
                             AppText.sans(size: 14.5),
                             AppText.sans(
                               size: 14.5,
@@ -485,10 +517,7 @@ class SummaryStep extends StatelessWidget {
                 ),
               ),
             ),
-            DelayedFade(
-              delay: const Duration(milliseconds: 2600),
-              child: PrimaryButton(label: 'Continue', onPressed: onNext),
-            ),
+            PrimaryButton(label: 'Continue', onPressed: onNext),
             const SizedBox(height: 18),
           ],
         ),
@@ -502,9 +531,16 @@ class SummaryStep extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class NotificationsPreviewStep extends StatelessWidget {
-  const NotificationsPreviewStep({super.key, required this.onNext});
+  const NotificationsPreviewStep({
+    super.key,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   Widget _widgetTile(String text, String? source) {
     return Expanded(
@@ -541,31 +577,34 @@ class NotificationsPreviewStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onNext,
-      child: SafeArea(
-        child: Padding(
-          padding: kPagePadding,
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: RevealColumn(
-                    step: const Duration(milliseconds: 520),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 34, bottom: 10),
-                        child: Text(
-                          'The Quran comes to you',
-                          style: AppText.serif(size: 28),
+    return SafeArea(
+      child: Padding(
+        padding: kPagePadding,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
+            Expanded(
+              child: SingleChildScrollView(
+                child: RevealColumn(
+                  step: const Duration(milliseconds: 520),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20, bottom: 10),
+                      child: Text(
+                        'The Quran meets you where you are',
+                        style: AppText.sans(
+                          size: 25,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
                         ),
                       ),
+                    ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 30),
                         child: Text(
-                          "Throughout the day, you'll receive verses and du'as "
-                          'right on your home screen.',
+                          "Verses and du'as land right on your home screen, "
+                          'spread across your day.',
                           style: AppText.sans(size: 15.5),
                         ),
                       ),
@@ -585,7 +624,7 @@ class NotificationsPreviewStep extends StatelessWidget {
                               child: _Notification(
                                 title: 'Daily Quran Verse',
                                 body:
-                                    '"Indeed, with hardship comes ease." — Ash-Sharh 94:6',
+                                    '"Indeed, with hardship comes ease." (Ash-Sharh 94:6)',
                                 showMeta: true,
                               ),
                             ),
@@ -617,7 +656,7 @@ class NotificationsPreviewStep extends StatelessWidget {
                             children: [
                               _widgetTile(
                                 'And He is with you wherever you are',
-                                '— Al-Hadid 57:4',
+                                '(Al-Hadid 57:4)',
                               ),
                               const SizedBox(width: 12),
                               _widgetTile(
@@ -632,25 +671,9 @@ class NotificationsPreviewStep extends StatelessWidget {
                   ),
                 ),
               ),
-              DelayedFade(
-                delay: const Duration(milliseconds: 3200),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 22),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('Tap to continue', style: AppText.sans(size: 14.5)),
-                      const SizedBox(width: 8),
-                      Text(
-                        '→',
-                        style: TextStyle(color: AppColors.gold, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            PrimaryButton(label: 'Continue', onPressed: onNext),
+            const SizedBox(height: 18),
+          ],
         ),
       ),
     );
@@ -722,9 +745,16 @@ class _Notification extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class DailyMomentStep extends StatelessWidget {
-  const DailyMomentStep({super.key, required this.onNext});
+  const DailyMomentStep({
+    super.key,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -737,18 +767,28 @@ class DailyMomentStep extends StatelessWidget {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
             const Spacer(),
             Reveal(child: const StreakSun(count: 1)),
             const SizedBox(height: 28),
             Reveal(
               delay: const Duration(milliseconds: 520),
-              child: Text('Your daily moment', style: AppText.serif(size: 27)),
+              child: Text(
+                'A small ritual, every day',
+                style: AppText.sans(
+                  size: 24,
+                  color: AppColors.ink,
+                  weight: FontWeight.w700,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             Reveal(
               delay: const Duration(milliseconds: 900),
               child: Text(
-                "When you open the app, you'll see your streak and today's du'a.",
+                "Open the app and your streak and today's du'a are right there "
+                'waiting for you.',
                 textAlign: TextAlign.center,
                 style: AppText.sans(size: 15.5),
               ),
@@ -806,13 +846,10 @@ class DailyMomentStep extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            DelayedFade(
-              delay: const Duration(milliseconds: 1700),
-              child: PrimaryButton(
-                label: 'Start my daily prayer',
-                dark: false,
-                onPressed: onNext,
-              ),
+            PrimaryButton(
+              label: 'Begin my daily ritual',
+              dark: false,
+              onPressed: onNext,
             ),
             const SizedBox(height: 20),
           ],
@@ -838,10 +875,10 @@ class LoadingStep extends StatefulWidget {
 class _LoadingStepState extends State<LoadingStep>
     with SingleTickerProviderStateMixin {
   static const _captions = [
-    'Reviewing your answers...',
-    'Matching verses to your goals...',
-    'Aligning your goals with the Quran...',
-    'Preparing your daily plan...',
+    'Looking over your answers...',
+    'Finding verses that fit your goals...',
+    'Lining up your goals with the Quran...',
+    'Putting together your daily plan...',
   ];
 
   late final AnimationController _controller =
@@ -940,10 +977,18 @@ class _LoadingStepState extends State<LoadingStep>
 // ---------------------------------------------------------------------------
 
 class PlanDateStep extends StatelessWidget {
-  const PlanDateStep({super.key, required this.data, required this.onNext});
+  const PlanDateStep({
+    super.key,
+    required this.data,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final OnboardingData data;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   // A slight alternating tilt gives the stack a hand-placed, scattered feel
   // instead of three flat, rigid rows.
@@ -995,21 +1040,28 @@ class PlanDateStep extends StatelessWidget {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
             Expanded(
               child: SingleChildScrollView(
                 child: RevealColumn(
                   step: const Duration(milliseconds: 420),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 26, bottom: 18),
+                      padding: const EdgeInsets.only(top: 18, bottom: 18),
                       child: SoftCard(
                         child: Column(
                           children: [
                             Text(
-                              '${data.displayName}, your daily verse habit can '
-                              'feel natural by',
+                              '${data.displayName}, your daily verse habit could '
+                              'feel second nature by',
                               textAlign: TextAlign.center,
-                              style: AppText.serif(size: 20, height: 1.35),
+                              style: AppText.sans(
+                                size: 19,
+                                color: AppColors.ink,
+                                weight: FontWeight.w700,
+                                height: 1.35,
+                              ),
                             ),
                             const SizedBox(height: 14),
                             Container(
@@ -1051,8 +1103,8 @@ class PlanDateStep extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              "🤲 Just one verse a day, plus reminders and widgets "
-                              'to keep the Quran close.',
+                              "🤲 One verse a day, backed by reminders and widgets "
+                              'that keep the Quran within reach.',
                               textAlign: TextAlign.center,
                               style: AppText.sans(
                                 size: 13,
@@ -1066,41 +1118,38 @@ class PlanDateStep extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
-                        "How we'll get you there:",
+                        "Here's how we'll get you there:",
                         style: AppText.sans(size: 16, color: AppColors.ink),
                       ),
                     ),
                     _row(
                       '✍️',
-                      'A verse every day.',
-                      'Start with ayahs chosen for your journey, plus gentle '
-                          'reminders that bring you back.',
+                      'One verse, every single day.',
+                      'Ayahs picked for your journey, paired with gentle '
+                          'nudges that bring you back.',
                       tilt: -1.6,
                     ),
                     _row(
                       '🧩',
-                      "Your verse where you'll see it.",
-                      'Turn your home screen into a quiet place for daily '
+                      'Right where you already look.',
+                      'Your home screen becomes a quiet space for daily '
                           "Qur'an and du'a.",
                       tilt: 1.6,
                     ),
                     _row(
                       '🙌',
-                      'Join believers starting with the Quran.',
-                      "You're not alone. Thousands start their day with the "
-                          'words of Allah.',
+                      'A community doing this together.',
+                      "You're far from alone, thousands begin their day "
+                          'with the words of Allah.',
                       tilt: -1.6,
                     ),
                   ],
                 ),
               ),
             ),
-            DelayedFade(
-              delay: const Duration(milliseconds: 2600),
-              child: PrimaryButton(
-                label: 'Begin my transformation',
-                onPressed: onNext,
-              ),
+            PrimaryButton(
+              label: 'Start building this habit',
+              onPressed: onNext,
             ),
             const SizedBox(height: 18),
           ],
@@ -1115,10 +1164,18 @@ class PlanDateStep extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class SnapshotStep extends StatelessWidget {
-  const SnapshotStep({super.key, required this.data, required this.onNext});
+  const SnapshotStep({
+    super.key,
+    required this.data,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final OnboardingData data;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   Widget _statCard({
     required String emoji,
@@ -1190,24 +1247,30 @@ class SnapshotStep extends StatelessWidget {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
             Expanded(
               child: SingleChildScrollView(
                 child: RevealColumn(
                   step: const Duration(milliseconds: 400),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 26, bottom: 8),
+                      padding: const EdgeInsets.only(top: 18, bottom: 8),
                       child: Text(
-                        '${data.displayName}, here is your personalized faith '
-                        'snapshot',
-                        style: AppText.serif(size: 26),
+                        "${data.displayName}, here's a snapshot of your faith "
+                        'right now',
+                        style: AppText.sans(
+                          size: 24,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 22),
                       child: Text(
-                        "Based on your answers, we've designed a path to help you "
-                        'grow closer to Allah through His words.',
+                        "From what you told us, we've mapped out a path toward "
+                        "growing closer to Allah through His words.",
                         style: AppText.sans(size: 15),
                       ),
                     ),
@@ -1237,10 +1300,7 @@ class SnapshotStep extends StatelessWidget {
                 ),
               ),
             ),
-            DelayedFade(
-              delay: const Duration(milliseconds: 2200),
-              child: PrimaryButton(label: 'Continue', onPressed: onNext),
-            ),
+            PrimaryButton(label: 'Continue', onPressed: onNext),
             const SizedBox(height: 18),
           ],
         ),
@@ -1318,10 +1378,18 @@ class _BarState extends State<_Bar> {
 // ---------------------------------------------------------------------------
 
 class ReminderTimeStep extends StatefulWidget {
-  const ReminderTimeStep({super.key, required this.data, required this.onNext});
+  const ReminderTimeStep({
+    super.key,
+    required this.data,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final OnboardingData data;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   State<ReminderTimeStep> createState() => _ReminderTimeStepState();
@@ -1414,23 +1482,29 @@ class _ReminderTimeStepState extends State<ReminderTimeStep> {
         padding: kPagePadding,
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: widget.progress, onBack: widget.onBack),
             Expanded(
               child: SingleChildScrollView(
                 child: RevealColumn(
                   step: const Duration(milliseconds: 380),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 34, bottom: 10),
+                      padding: const EdgeInsets.only(top: 20, bottom: 10),
                       child: Text(
-                        'Choose when you receive your daily verse',
-                        style: AppText.serif(size: 26),
+                        'Pick your daily verse window',
+                        style: AppText.sans(
+                          size: 24,
+                          color: AppColors.ink,
+                          weight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 26),
                       child: Text(
-                        "Gentle reminders between these hours. No noise — just the "
-                        'words you asked for.',
+                        "We'll nudge you gently within this window, nothing "
+                        'noisy, just the words you asked for.',
                         style: AppText.sans(size: 15),
                       ),
                     ),
@@ -1448,10 +1522,7 @@ class _ReminderTimeStepState extends State<ReminderTimeStep> {
                 ),
               ),
             ),
-            DelayedFade(
-              delay: const Duration(milliseconds: 1500),
-              child: PrimaryButton(label: 'Continue', onPressed: widget.onNext),
-            ),
+            PrimaryButton(label: 'Continue', onPressed: widget.onNext),
             const SizedBox(height: 18),
           ],
         ),

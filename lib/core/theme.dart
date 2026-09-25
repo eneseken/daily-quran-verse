@@ -247,12 +247,14 @@ class AppText {
     FontWeight weight = FontWeight.w400,
     double height = 1.5,
     double? spacing,
+    FontStyle? style,
   }) => GoogleFonts.inter(
     fontSize: size,
     color: color ?? AppColors.inkSoft,
     fontWeight: weight,
     height: height,
     letterSpacing: spacing,
+    fontStyle: style,
   );
 
   /// Small all-caps label used above summary cards.

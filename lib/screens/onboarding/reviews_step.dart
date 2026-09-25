@@ -5,31 +5,39 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/reveal.dart';
+import 'step_scaffolds.dart';
 
 /// Social proof — the last beat before account creation. It follows the same
 /// adaptive onboarding palette as the rest of the flow: cream in light mode,
 /// charcoal in dark mode.
 class ReviewsStep extends StatelessWidget {
-  const ReviewsStep({super.key, required this.onNext});
+  const ReviewsStep({
+    super.key,
+    required this.onNext,
+    this.progress = 0,
+    this.onBack,
+  });
 
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   static const _reviews = [
     (
-      'ACTUALLY CONSISTENT',
-      "I've tried every Quran app out there but always gave up after a week. "
-          "This is the only thing that's actually helped me read consistently.",
+      'FINALLY STUCK WITH IT',
+      "I've downloaded so many Quran apps and dropped every one within a "
+          "week. This is the first one I've actually kept up with.",
     ),
     (
-      'REALLY HELPS',
-      'No joke, I used to feel so guilty about how little I opened the Quran. '
-          'The simple reminders just work. My heart feels so much closer to '
-          'Allah now.',
+      'MADE A REAL DIFFERENCE',
+      "I used to feel bad about how rarely I picked up the Quran. The "
+          'reminders are so simple, but they work, and I feel so much '
+          'nearer to Allah now.',
     ),
     (
-      'WIDGETS ARE GREAT',
-      "It doesn't feel like another app on my phone. Seeing an ayah on my "
-          'home screen quietly changes the whole day.',
+      'LOVE THE WIDGET',
+      "It doesn't feel like just another app taking up space. Catching an "
+          'ayah on my home screen shifts my whole day.',
     ),
   ];
 
@@ -41,39 +49,49 @@ class ReviewsStep extends StatelessWidget {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(26, 26, 26, 130),
-              child: RevealColumn(
-                step: const Duration(milliseconds: 340),
+              padding: const EdgeInsets.fromLTRB(26, 8, 26, 130),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text.rich(
-                      TextSpan(
-                        children: markup(
-                          'Designed for believers who want **the Quran every '
-                          'day.**',
-                          AppText.serif(size: 26, color: AppColors.ink),
-                          AppText.serif(size: 26, color: AppColors.gold),
+                  OnboardingTopBar(progress: progress, onBack: onBack),
+                  const SizedBox(height: 18),
+                  RevealColumn(
+                    step: const Duration(milliseconds: 340),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text.rich(
+                          TextSpan(
+                            children: markup(
+                              'Built for believers who want **the Quran, '
+                              'every day.**',
+                              AppText.sans(size: 24, color: AppColors.ink, weight: FontWeight.w700, height: 1.28),
+                              AppText.sans(size: 24, color: AppColors.gold, weight: FontWeight.w700, height: 1.28),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 26),
+                        child: Text(
+                          'What people are saying about Daily Quran Verse.',
+                          style: AppText.sans(
+                            size: 14.5,
+                            color: AppColors.inkSoft,
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 26),
+                        child: _LaurelBadge(),
+                      ),
+                      for (final (title, body) in _reviews)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ReviewCard(title: title, body: body),
+                        ),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 26),
-                    child: Text(
-                      'Reviews from people using Daily Quran Verse.',
-                      style: AppText.sans(size: 14.5, color: AppColors.inkSoft),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 26),
-                    child: _LaurelBadge(),
-                  ),
-                  for (final (title, body) in _reviews)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ReviewCard(title: title, body: body),
-                    ),
                 ],
               ),
             ),
@@ -98,12 +116,9 @@ class ReviewsStep extends StatelessWidget {
               left: 26,
               right: 26,
               bottom: 22,
-              child: DelayedFade(
-                delay: const Duration(milliseconds: 1500),
-                child: PrimaryButton(
-                  label: 'Join Daily Quran Verse 🤲',
-                  onPressed: onNext,
-                ),
+              child: PrimaryButton(
+                label: 'Get started 🤲',
+                onPressed: onNext,
               ),
             ),
           ],
@@ -153,7 +168,7 @@ class _LaurelBadge extends StatelessWidget {
                 const _Stars(size: 23, gap: 3),
                 const SizedBox(height: 10),
                 Text(
-                  '🕊️🙏🥹 +10,000 people',
+                  '🕊️🙏🥹 Joined by 10,000+',
                   textAlign: TextAlign.center,
                   style: AppText.sans(size: 16, color: AppColors.inkSoft),
                 ),

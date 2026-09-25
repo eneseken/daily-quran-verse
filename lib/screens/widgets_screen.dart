@@ -1,18 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 
 import '../core/theme.dart';
 
-class WidgetsScreen extends StatelessWidget {
+class WidgetsScreen extends StatefulWidget {
   const WidgetsScreen({super.key});
 
-  static Color get _frame =>
-      AppColors.isDark ? const Color(0xFF575047) : const Color(0xFFC9C3BA);
-  static Color get _card =>
-      AppColors.isDark ? const Color(0xFF3B352F) : const Color(0xFFE7E1D7);
-  static Color get _gold =>
-      AppColors.isDark ? const Color(0xFFF6CC83) : const Color(0xFFDCAF59);
-  static Color get _body =>
-      AppColors.isDark ? AppColors.inkSoft : const Color(0xFF312D29);
+  @override
+  State<WidgetsScreen> createState() => _WidgetsScreenState();
+}
+
+class _WidgetsScreenState extends State<WidgetsScreen> {
+  bool _pinSupported = false;
+  bool _requesting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPinSupport();
+  }
+
+  Future<void> _checkPinSupport() async {
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
+    if (mounted) setState(() => _pinSupported = supported);
+  }
+
+  /// Asks Android to show its own "add this widget" confirmation sheet —
+  /// only available on API 26+. Below that (or if the launcher declines),
+  /// the numbered steps above remain the fallback path.
+  Future<void> _addWidget() async {
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    try {
+      await HomeWidget.requestPinWidget(androidName: 'DailyVerseWidgetProvider');
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,14 +68,69 @@ class WidgetsScreen extends StatelessWidget {
               const SizedBox(height: 16),
               const _StepLine(
                 number: '3.',
-                text: 'Search for "Daily Bible Verse" and\nadd the widget',
+                text: 'Search for "Daily Quran Verse" and\nadd the widget',
               ),
+              if (_pinSupported) ...[
+                const SizedBox(height: 28),
+                _AddWidgetButton(loading: _requesting, onTap: _addWidget),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _AddWidgetButton extends StatelessWidget {
+  const _AddWidgetButton({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: loading ? null : onTap,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.ctaBg,
+          foregroundColor: AppColors.ctaOnBg,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: loading
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.ctaOnBg,
+                ),
+              )
+            : Text(
+                'Add widget to home screen',
+                style: AppText.sans(size: 17, color: AppColors.ctaOnBg),
+              ),
+      ),
+    );
+  }
+}
+
+/// Colors shared by the phone-mock preview widgets below — kept outside
+/// the screen's State since those widgets are const and built once.
+class _Palette {
+  static Color get frame =>
+      AppColors.isDark ? const Color(0xFF575047) : const Color(0xFFC9C3BA);
+  static Color get card =>
+      AppColors.isDark ? const Color(0xFF3B352F) : const Color(0xFFE7E1D7);
+  static Color get gold =>
+      AppColors.isDark ? const Color(0xFFF6CC83) : const Color(0xFFDCAF59);
+  static Color get body =>
+      AppColors.isDark ? AppColors.inkSoft : const Color(0xFF312D29);
 }
 
 class _PhonePreview extends StatelessWidget {
@@ -63,7 +142,7 @@ class _PhonePreview extends StatelessWidget {
       height: 334,
       width: double.infinity,
       child: CustomPaint(
-        painter: _PhoneFramePainter(color: WidgetsScreen._frame),
+        painter: _PhoneFramePainter(color: _Palette.frame),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(56)),
           child: SizedBox(
@@ -78,7 +157,7 @@ class _PhonePreview extends StatelessWidget {
                   child: Container(
                     height: 38,
                     decoration: BoxDecoration(
-                      color: WidgetsScreen._frame,
+                      color: _Palette.frame,
                       borderRadius: BorderRadius.circular(21),
                     ),
                   ),
@@ -90,7 +169,7 @@ class _PhonePreview extends StatelessWidget {
                   child: Container(
                     height: 112,
                     decoration: BoxDecoration(
-                      color: WidgetsScreen._card,
+                      color: _Palette.card,
                       borderRadius: BorderRadius.circular(25),
                     ),
                     alignment: Alignment.center,
@@ -102,7 +181,7 @@ class _PhonePreview extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: AppText.serif(
                           size: 17,
-                          color: WidgetsScreen._gold,
+                          color: _Palette.gold,
                           height: 1.45,
                         ),
                       ),
@@ -209,7 +288,7 @@ class _SmallWidgetBlock extends StatelessWidget {
     return Container(
       height: 69,
       decoration: BoxDecoration(
-        color: WidgetsScreen._card,
+        color: _Palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
     );
@@ -242,7 +321,7 @@ class _StepLine extends StatelessWidget {
             number,
             style: AppText.sans(
               size: 20,
-              color: WidgetsScreen._gold,
+              color: _Palette.gold,
               height: 1.2,
             ),
           ),
@@ -252,7 +331,7 @@ class _StepLine extends StatelessWidget {
             text,
             style: AppText.sans(
               size: 20,
-              color: WidgetsScreen._body,
+              color: _Palette.body,
               height: 1.32,
             ),
           ),

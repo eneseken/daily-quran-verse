@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../models/onboarding_data.dart';
 import 'custom_steps.dart';
-import 'reviews_step.dart';
 import 'step_scaffolds.dart';
 
 /// The full onboarding journey. Only the current step is built, so every screen
@@ -22,14 +21,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _data = OnboardingData();
   int _index = 0;
 
-  /// Indices of the steps that count as questions, used for the progress rail.
-  static const _questionSteps = [6, 7, 9, 10, 12, 13, 14, 15, 17];
-
-  double _progressFor(int step) {
-    final position = _questionSteps.indexOf(step);
-    if (position < 0) return 0;
-    return (position + 1) / _questionSteps.length;
-  }
+  /// Overall position in the whole journey, not just the question steps —
+  /// the top bar now shows on every screen, so the rail should reflect how
+  /// far through the full 26-step flow the user actually is.
+  double get _progress => (_index + 1) / _stepCount;
 
   void _next() {
     HapticFeedback.lightImpact();
@@ -46,9 +41,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     setState(() => _index--);
   }
 
-  static const _stepCount = 26;
+  static const _stepCount = 22;
 
   Widget _buildStep(int index) {
+    // The very first screen has nowhere to go back to; every other step
+    // wires the top bar's back arrow straight to `_back`.
+    final back = index == 0 ? null : _back;
+
     switch (index) {
       case 0:
         return WelcomeStep(onNext: _next);
@@ -56,32 +55,38 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case 1:
         return StatementStep(
           onNext: _next,
-          blocks: [heading('Your daily Quran verse is waiting', size: 29)],
+          progress: _progress,
+          onBack: back,
+          blocks: [heading("Today's verse is ready for you", size: 29)],
         );
 
       // The hook — each line lands on its own.
       case 2:
         return StatementStep(
           onNext: _next,
+          progress: _progress,
+          onBack: back,
           blocks: [
-            heading('Ever feel like you unlock your phone **100 times a day**...'),
-            heading('but barely open your **Quran** once?'),
+            heading('We check our phones **dozens of times a day**...'),
+            heading('yet the **Quran** often waits untouched.'),
             bodyLine(
-              "You're not alone. Distractions are everywhere, and it's easy to "
-              'lose sight of what truly matters.',
+              "It happens to almost everyone. The world pulls our attention "
+              'in a hundred directions.',
             ),
-            bodyLine('What if your **daily verse** met you before the scroll?'),
+            bodyLine('What if a **verse a day** reached you first?'),
           ],
         );
 
       case 3:
         return StatementStep(
           onNext: _next,
+          progress: _progress,
+          onBack: back,
           blocks: [
-            heading('Daily Quran Verse brings **the words of Allah** into your day.'),
+            heading('Daily Quran Verse puts **Allah\'s words** in front of you, every day.'),
             bodyLine(
-              'One verse each day, **chosen for your journey**, delivered '
-              '**when you need it**.',
+              'A single ayah, **matched to where you are**, arriving right '
+              '**when it counts**.',
             ),
           ],
         );
@@ -91,18 +96,23 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           initial: _data.name,
           onChanged: (v) => _data.name = v,
           onNext: _next,
+          progress: _progress,
+          onBack: back,
         );
 
       case 5:
         return InterstitialStep(
-          text: 'Alright ${_data.displayName}, consider this...',
+          text: 'One more thing, ${_data.displayName}...',
           onNext: _next,
+          progress: _progress,
+          onBack: back,
         );
 
       case 6:
         return SingleChoiceStep(
-          title: 'How old are you?',
-          progress: _progressFor(6),
+          title: "What's your age range?",
+          progress: _progress,
+          onBack: back,
           selected: _data.ageRange,
           onSelected: (v) => _data.ageRange = v,
           onNext: _next,
@@ -118,8 +128,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
       case 7:
         return SingleChoiceStep(
-          title: 'How much time do you spend on your phone each day?',
-          progress: _progressFor(7),
+          title: 'On an average day, how long are you on your phone?',
+          progress: _progress,
+          onBack: back,
           selected: _data.screenTime,
           onSelected: (v) => _data.screenTime = v,
           onNext: _next,
@@ -136,16 +147,19 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case 8:
         return StatementStep(
           onNext: _next,
+          progress: _progress,
+          onBack: back,
           blocks: [
-            heading('Imagine if even **5 minutes** brought you **closer to Allah**...'),
-            bodyLine("Let's build that habit together"),
+            heading('Just **5 minutes** a day can bring you **nearer to Allah**...'),
+            bodyLine("Let's build that habit, one day at a time"),
           ],
         );
 
       case 9:
         return MultiChoiceStep(
-          title: 'What do you want to **achieve** with Daily Quran Verse?',
-          progress: _progressFor(9),
+          title: 'What are you **hoping for** from Daily Quran Verse?',
+          progress: _progress,
+          onBack: back,
           selected: _data.goals,
           onChanged: (v) => _data.goals = v,
           onNext: _next,
@@ -161,8 +175,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
       case 10:
         return SingleChoiceStep(
-          title: 'When you imagine your **iman** flourishing, what do you see?',
-          progress: _progressFor(10),
+          title: 'Picture your **iman** at its strongest. What does that look like?',
+          progress: _progress,
+          onBack: back,
           selected: _data.vision,
           onSelected: (v) => _data.vision = v,
           onNext: _next,
@@ -177,12 +192,18 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         );
 
       case 11:
-        return SocialProofStep(data: _data, onNext: _next);
+        return SocialProofStep(
+          data: _data,
+          onNext: _next,
+          progress: _progress,
+          onBack: back,
+        );
 
       case 12:
         return SliderStep(
-          title: 'Be honest, how often do you read the Quran each week?',
-          progress: _progressFor(12),
+          title: 'Honestly, how many days a week do you open the Quran?',
+          progress: _progress,
+          onBack: back,
           value: _data.readingDays,
           onChanged: (v) => _data.readingDays = v,
           onNext: _next,
@@ -190,8 +211,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
       case 13:
         return SingleChoiceStep(
-          title: 'Where do you stand with **Allah** today?',
-          progress: _progressFor(13),
+          title: 'Right now, how close do you feel to **Allah**?',
+          progress: _progress,
+          onBack: back,
           selected: _data.faithStatus,
           onSelected: (v) => _data.faithStatus = v,
           onNext: _next,
@@ -206,8 +228,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       // Added for a Muslim audience — the reference flow has no salah question.
       case 14:
         return SingleChoiceStep(
-          title: 'How are your **five daily prayers** going?',
-          progress: _progressFor(14),
+          title: 'And your **five daily salah**, how consistent are you?',
+          progress: _progress,
+          onBack: back,
           selected: _data.prayerStatus,
           onSelected: (v) => _data.prayerStatus = v,
           onNext: _next,
@@ -221,8 +244,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
       case 15:
         return MultiChoiceStep(
-          title: 'What gets in the way of spending more time with **the Quran**?',
-          progress: _progressFor(15),
+          title: 'What tends to keep you away from **the Quran**?',
+          progress: _progress,
+          onBack: back,
           selected: _data.obstacles,
           onChanged: (v) => _data.obstacles = v,
           onNext: _next,
@@ -239,30 +263,32 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case 16:
         return StatementStep(
           onNext: _next,
+          progress: _progress,
+          onBack: back,
           blocks: [
             emojiLine('🤲'),
             heading(
-              'Every struggle is an opportunity for **iman** to deepen, '
+              'Every hard moment is a chance for **iman** to grow, '
               '${_data.displayName}.',
             ),
             bodyLine(
-              'But **the Quran** speaks directly to **your heart**, offering '
-              'comfort and strength exactly when you need it most.',
+              '**The Quran** speaks straight to **your heart**, offering '
+              "comfort and strength right when you're low on either.",
             ),
             quoteLine('"Indeed, with hardship comes ease." (Ash-Sharh 94:6)'),
             bodyLine(
-              "With **the Quran** at your fingertips, you'll never face those "
-              'moments alone.',
+              "Keep **the Quran** close, and you won't walk through those "
+              'moments by yourself.',
             ),
           ],
         );
 
       case 17:
         return SingleChoiceStep(
-          title: "What's your sex?",
-          subtitle:
-              "We'll personalize your experience based on your background.",
-          progress: _progressFor(17),
+          title: 'Lastly, how do you identify?',
+          subtitle: "This helps us tailor the experience to you.",
+          progress: _progress,
+          onBack: back,
           selected: _data.sex,
           onSelected: (v) => _data.sex = v,
           onNext: _next,
@@ -270,29 +296,31 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         );
 
       case 18:
-        return SummaryStep(data: _data, onNext: _next);
+        return SummaryStep(
+          data: _data,
+          onNext: _next,
+          progress: _progress,
+          onBack: back,
+        );
 
       case 19:
-        return NotificationsPreviewStep(onNext: _next);
+        return NotificationsPreviewStep(
+          onNext: _next,
+          progress: _progress,
+          onBack: back,
+        );
 
       case 20:
-        return DailyMomentStep(onNext: _next);
+        return DailyMomentStep(
+          onNext: _next,
+          progress: _progress,
+          onBack: back,
+        );
 
+      // A genuine loading beat — no back arrow, nothing to confirm. It's the
+      // last screen in the flow now, so it resolves straight into onComplete.
       case 21:
         return LoadingStep(onNext: _next);
-
-      case 22:
-        return PlanDateStep(data: _data, onNext: _next);
-
-      case 23:
-        return SnapshotStep(data: _data, onNext: _next);
-
-      case 24:
-        return ReminderTimeStep(data: _data, onNext: _next);
-
-      // Last beat before account creation.
-      case 25:
-        return ReviewsStep(onNext: _next);
 
       default:
         return const SizedBox.shrink();

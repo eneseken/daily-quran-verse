@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_strings.dart';
 import '../core/feed_background.dart';
+import '../core/quran_language.dart';
 import '../core/theme.dart';
 import '../services/subscription_service.dart';
 import 'paywall_screen.dart';
@@ -32,6 +34,22 @@ class CustomizeScreen extends StatefulWidget {
 
 class _CustomizeScreenState extends State<CustomizeScreen> {
   late String? _selectedId = FeedBackgroundController.instance.themeId;
+
+  @override
+  void initState() {
+    super.initState();
+    QuranLanguageController.instance.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    QuranLanguageController.instance.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _select(String id, bool locked) async {
     if (locked) {
@@ -74,7 +92,7 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
                       ),
                     ),
                     Text(
-                      'Customize',
+                      AppStrings.t('customize'),
                       textAlign: TextAlign.center,
                       style: AppText.serif(
                         size: 43,
@@ -89,7 +107,7 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
               const _UnlockThemesCard(),
               const SizedBox(height: 37),
               Text(
-                'For you',
+                AppStrings.t('customize_for_you'),
                 style: AppText.serif(size: 31, color: AppColors.ink, height: 1),
               ),
               const SizedBox(height: 38),
@@ -110,8 +128,21 @@ class _CustomizeScreenState extends State<CustomizeScreen> {
                     id: id,
                     locked: locked,
                     selected: _selectedId == id,
-                    darkText: FeedBackgroundController.darkTextThemeIds
-                        .contains(id),
+                    darkText: FeedBackgroundController.instance.darkTextFor(
+                      id,
+                    ),
+                    onPickTextColor: _selectedId == id
+                        ? (darkText) {
+                            debugPrint(
+                              'Customize: text override tap id=$id darkText=$darkText',
+                            );
+                            FeedBackgroundController.instance.setTextOverride(
+                              id,
+                              darkText,
+                            );
+                            setState(() {});
+                          }
+                        : null,
                     onTap: () => _select(id, locked),
                   );
                 },
@@ -197,14 +228,14 @@ class _UnlockThemesCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Unlock all themes',
+                  AppStrings.t('customize_unlock_title'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.sans(size: 19, color: const Color(0xFF24211E)),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Get access to all\nbackgrounds',
+                  AppStrings.t('customize_unlock_subtitle'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.sans(
@@ -229,6 +260,7 @@ class _ThemeTile extends StatelessWidget {
     required this.selected,
     required this.darkText,
     required this.onTap,
+    this.onPickTextColor,
   });
 
   final String id;
@@ -237,52 +269,163 @@ class _ThemeTile extends StatelessWidget {
   final bool darkText;
   final VoidCallback onTap;
 
+  /// Non-null only for the currently selected tile — lets the user override
+  /// this theme's verse-text color via the two dots in the corner. Null
+  /// hides the dots entirely for unselected tiles.
+  final ValueChanged<bool>? onPickTextColor;
+
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(17),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(17),
+                border: selected
+                    ? Border.all(color: AppColors.gold, width: 3)
+                    : null,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.asset(
+                        'assets/themes/$id.png',
+                        fit: BoxFit.cover,
+                        cacheWidth: 260,
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: Text(
+                      'Aa',
+                      style: AppText.sans(
+                        size: 31,
+                        color: darkText
+                            ? const Color(0xFF252320)
+                            : Colors.white,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 8,
+                    child: locked ? const _LockBadge() : const _FreeBadge(),
+                  ),
+                  if (selected)
+                    const Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: _SelectedBadge(),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Kept outside the InkWell above (rather than as one more Stack
+        // child inside it) so tapping a dot never also fires the tile's own
+        // onTap — with both as siblings of the same InkWell, tapping a dot
+        // was toggling the tile's selection off in the same gesture.
+        if (onPickTextColor != null)
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: _TextColorDots(
+              darkSelected: darkText,
+              onPick: onPickTextColor!,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Two small dots — black and white — on the selected tile, letting the
+/// user manually pick which one the verse text renders in over this
+/// wallpaper, overriding the theme's built-in default contrast.
+class _TextColorDots extends StatelessWidget {
+  const _TextColorDots({required this.darkSelected, required this.onPick});
+
+  final bool darkSelected;
+  final ValueChanged<bool> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Dot(
+              color: const Color(0xFF252320),
+              selected: darkSelected,
+              onTap: () => onPick(true),
+            ),
+            const SizedBox(width: 4),
+            _Dot(
+              color: Colors.white,
+              selected: !darkSelected,
+              onTap: () => onPick(false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot({required this.color, required this.selected, required this.onTap});
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Material + InkWell (rather than a bare GestureDetector) so a tap
+    // gives visible splash/highlight feedback — makes it obvious the tap
+    // landed on this dot specifically, not its neighbor or the tile below.
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(17),
+      shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(17),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: selected
-                ? Border.all(color: AppColors.gold, width: 3)
-                : null,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.asset(
-                    'assets/themes/$id.png',
-                    fit: BoxFit.cover,
-                    cacheWidth: 260,
-                  ),
-                ),
+        customBorder: const CircleBorder(),
+        // The visible dot stays small so two of them fit in a grid tile's
+        // corner, but the tap target itself is padded out closer to a
+        // comfortable thumb size.
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Container(
+            height: 16,
+            width: 16,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? AppColors.gold
+                    : Colors.white.withValues(alpha: 0.6),
+                width: selected ? 2 : 1,
               ),
-              Center(
-                child: Text(
-                  'Aa',
-                  style: AppText.sans(
-                    size: 31,
-                    color: darkText ? const Color(0xFF252320) : Colors.white,
-                    height: 1,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 8,
-                child: locked ? const _LockBadge() : const _FreeBadge(),
-              ),
-              if (selected)
-                const Positioned(bottom: 8, left: 8, child: _SelectedBadge()),
-            ],
+            ),
           ),
         ),
       ),
@@ -318,7 +461,7 @@ class _FreeBadge extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        'FREE',
+        AppStrings.t('badge_free'),
         style: AppText.sans(
           size: 10,
           color: AppColors.ctaOnBg,

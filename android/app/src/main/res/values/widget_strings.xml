@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_placeholder_text">Open the app to load today\'s verse.</string>
+    <string name="widget_placeholder_reference"></string>
+    <string name="widget_description">Shows today\'s Quran verse in your chosen language, refreshing at midnight.</string>
+</resources>

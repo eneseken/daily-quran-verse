@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors AppPalette.light in lib/core/theme.dart, so the widget matches
+     the in-app light theme. -->
+<resources>
+    <color name="widget_bg">#F1EDE5</color>
+    <color name="widget_card">#E7E1D7</color>
+    <color name="widget_ink">#2B2825</color>
+    <color name="widget_ink_soft">#6F6C65</color>
+    <color name="widget_gold">#D5A44F</color>
+</resources>

@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../core/feed_background.dart';
 import '../../models/quran_verse.dart';
+import '../../models/surah.dart';
 import '../../services/recitation_service.dart';
 import 'feed_theme.dart';
 
@@ -24,11 +25,21 @@ class VerseFeedShell extends StatelessWidget {
     required this.onShare,
     required this.onOpenSettings,
     required this.onTogglePlayback,
+    this.surah,
     this.profilePhotoPath,
     this.onOpenGift,
+    this.mostLikedMode = false,
+    this.onToggleMostLiked,
+    this.likesLabel,
   });
 
   final QuranVerse verse;
+
+  /// The surah [verse] belongs to, named above the feed and held there
+  /// while the reader swipes through that surah's ayahs — so the chapter
+  /// stays on screen instead of scrolling away with the text.
+  final Surah? surah;
+
   final int ayahCountInSurah;
   final bool liked;
   final RecitationState recitation;
@@ -39,6 +50,15 @@ class VerseFeedShell extends StatelessWidget {
   final VoidCallback onTogglePlayback;
   final String? profilePhotoPath;
   final VoidCallback? onOpenGift;
+
+  /// Whether the feed is currently pulling from the curated Most Liked
+  /// ranking instead of the normal sequential-through-the-Quran feed.
+  final bool mostLikedMode;
+  final VoidCallback? onToggleMostLiked;
+
+  /// The curated like count for the verse on screen, shown only in Most
+  /// Liked mode — null in the normal feed, which has no such number.
+  final String? likesLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +101,15 @@ class VerseFeedShell extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (surah != null) SurahTitleBar(surah: surah!),
                 Expanded(child: feed),
+                if (onToggleMostLiked != null) ...[
+                  _MostLikedToggle(
+                    active: mostLikedMode,
+                    onTap: onToggleMostLiked!,
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: _VerseActions(
@@ -90,6 +118,7 @@ class VerseFeedShell extends StatelessWidget {
                     onShare: onShare,
                     onToggleLike: onToggleLike,
                     onTogglePlayback: onTogglePlayback,
+                    likesLabel: likesLabel,
                   ),
                 ),
               ],
@@ -226,14 +255,13 @@ class _ProfileFab extends StatelessWidget {
   }
 }
 
-/// One page of the feed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â just the verse itself, since the surrounding
-/// chrome lives in [VerseFeedShell] and does not scroll with it.
-///
-/// Ayah lengths vary enormously (2:282 is roughly forty times 108:1), so the
-/// type is sized to the page rather than fixed: the largest scale at which
-/// Arabic, translation and reference all still fit is measured and used.
-class VersePage extends StatelessWidget {
-  const VersePage({
+/// One page of the feed: a single ayah, sized to fill the screen on its
+/// own. Swiping moves to the next ayah, and past a surah's last ayah
+/// straight into the next surah's first — the feed is one flat run through
+/// the whole Quran, with [SurahTitleBar] above it naming whichever surah
+/// the current ayah belongs to.
+class AyahPage extends StatelessWidget {
+  const AyahPage({
     super.key,
     required this.verse,
     required this.languageCode,
@@ -242,26 +270,32 @@ class VersePage extends StatelessWidget {
 
   final QuranVerse verse;
   final String languageCode;
-
-  /// When false, the Arabic block is omitted entirely ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â not just visually
-  /// hidden ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â so the fit-scaling below stops reserving height for it and the
-  /// translation gets to use that space instead.
   final bool showArabic;
 
   /// Sizes for a short ayah, scaled down from here as the text grows.
   /// Public so tests can assert against the actual values used.
-  static const arabicSize = 30.0;
-  static const quoteSize = 27.0;
-  static const referenceSize = 13.0;
-  static const _arabicGap = 30.0;
-  static const _referenceGap = 18.0;
+  static const arabicSize = 29.0;
+  static const translationSize = 24.0;
+  static const numberSize = 13.0;
+  static const _arabicGap = 26.0;
+  static const _numberGap = 16.0;
 
   /// The Arabic is set narrower than the translation, as in the design.
   static const _arabicWidthFactor = 0.85;
 
-  /// Past this the verse stops being comfortably readable, so the longest
-  /// ayahs settle here rather than shrinking into illegibility.
+  /// Past this the ayah stops being comfortably readable, so the longest
+  /// ones settle here rather than shrinking into illegibility.
   static const minScale = 0.34;
+
+  /// With Arabic chosen as the reading language the translation *is* the
+  /// Arabic, so rendering the Arabic block too would print it twice.
+  bool get _showArabicBlock => showArabic && languageCode != 'ar';
+
+  bool get _isRtl => languageCode == 'ar' || languageCode == 'ur';
+
+  TextStyle _translationStyle(double scale) => languageCode == 'ar'
+      ? FeedText.arabic(size: arabicSize * scale)
+      : FeedText.quote(size: translationSize * scale);
 
   double _heightAt(
     double scale,
@@ -269,59 +303,37 @@ class VersePage extends StatelessWidget {
     String translation,
     TextScaler scaler,
   ) {
-    final arabicBlock = showArabic
-        ? _measure(
-                verse.arabicText,
-                FeedText.arabic(size: arabicSize * scale),
-                maxWidth * _arabicWidthFactor,
-                scaler,
-                TextDirection.rtl,
-              ) +
-              _arabicGap * scale
+    final arabicBlock = _showArabicBlock
+        ? _measureText(
+              verse.arabicText,
+              FeedText.arabic(size: arabicSize * scale),
+              maxWidth * _arabicWidthFactor,
+              scaler,
+              TextDirection.rtl,
+            ) +
+            _arabicGap * scale
         : 0.0;
     return arabicBlock +
-        _measure(
+        _measureText(
           translation,
-          FeedText.quote(size: quoteSize * scale),
+          _translationStyle(scale),
           maxWidth,
           scaler,
-          TextDirection.ltr,
+          _isRtl ? TextDirection.rtl : TextDirection.ltr,
         ) +
-        _referenceGap * scale +
-        _measure(
-          '\u2014 ${verse.reference}',
-          FeedText.reference(size: referenceSize * scale),
+        _numberGap * scale +
+        _measureText(
+          '${verse.ayahNumber}',
+          FeedText.reference(size: numberSize * scale),
           maxWidth,
           scaler,
           TextDirection.ltr,
         );
   }
 
-  static double _measure(
-    String text,
-    TextStyle style,
-    double maxWidth,
-    TextScaler scaler,
-    TextDirection direction,
-  ) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: direction,
-      textAlign: TextAlign.center,
-      textScaler: scaler,
-    )..layout(maxWidth: maxWidth);
-    return painter.size.height;
-  }
-
-  /// The scale to render at, and whether that scale still overflows the
-  /// available height even at the readability floor.
-  ///
-  /// The floor exists so long ayahs stay legible rather than shrinking to
-  /// nothing ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â but 2:282 (the longest ayah in the Quran) on the smallest
-  /// supported phones can still be taller than one page even at that floor.
-  /// [overflows] tells the caller to fall back to letting the page scroll
-  /// for that one rare combination, rather than clipping or violating the
-  /// floor.
+  /// The scale to render at, and whether it still overflows the page even
+  /// at the readability floor — 2:282 on a small phone can, and that one
+  /// rare case falls back to letting the page scroll rather than clipping.
   (double scale, bool overflows) _fitScale({
     required double availableHeight,
     required double maxWidth,
@@ -334,8 +346,8 @@ class VersePage extends StatelessWidget {
       return (1, false);
     }
 
-    // Ten halvings land within ~0.05% of the true crossover ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â far finer than
-    // a reader could notice, and cheap enough to redo on every layout.
+    // Ten halvings land within ~0.05% of the true crossover — far finer
+    // than a reader could notice, and cheap enough to redo on every layout.
     var fits = minScale;
     var tooBig = 1.0;
     for (var i = 0; i < 10; i++) {
@@ -364,18 +376,15 @@ class VersePage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 22),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final fallbackHeight =
-                media.size.height - media.padding.vertical - 154;
             final pageHeight = constraints.hasBoundedHeight
                 ? constraints.maxHeight
-                : fallbackHeight.clamp(320.0, double.infinity);
+                : (media.size.height - media.padding.vertical - 260)
+                    .clamp(280.0, double.infinity);
             final pageWidth = constraints.hasBoundedWidth
                 ? constraints.maxWidth
                 : (media.size.width - 44).clamp(240.0, double.infinity);
-            final availableHeight = (pageHeight - 24).clamp(
-              240.0,
-              double.infinity,
-            );
+            final availableHeight =
+                (pageHeight - 24).clamp(200.0, double.infinity);
             final (scale, overflows) = _fitScale(
               availableHeight: availableHeight,
               maxWidth: pageWidth,
@@ -386,7 +395,7 @@ class VersePage extends StatelessWidget {
             final column = Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (showArabic) ...[
+                if (_showArabicBlock) ...[
                   FractionallySizedBox(
                     widthFactor: _arabicWidthFactor,
                     child: Text(
@@ -401,13 +410,15 @@ class VersePage extends StatelessWidget {
                 Text(
                   translation,
                   textAlign: TextAlign.center,
-                  style: FeedText.quote(size: quoteSize * scale),
+                  textDirection:
+                      _isRtl ? TextDirection.rtl : TextDirection.ltr,
+                  style: _translationStyle(scale),
                 ),
-                SizedBox(height: _referenceGap * scale),
+                SizedBox(height: _numberGap * scale),
                 Text(
-                  '\u2014 ${verse.reference}',
+                  '${verse.ayahNumber}',
                   textAlign: TextAlign.center,
-                  style: FeedText.reference(size: referenceSize * scale),
+                  style: FeedText.reference(size: numberSize * scale),
                 ),
               ],
             );
@@ -436,6 +447,67 @@ class VersePage extends StatelessWidget {
     );
   }
 }
+
+/// The surah's identity, pinned above the paging ayahs: Arabic name, then
+/// number, meaning and where it was revealed. Stays put as the reader
+/// swipes through that surah's ayahs, and changes only when they cross into
+/// the next surah.
+class SurahTitleBar extends StatelessWidget {
+  const SurahTitleBar({super.key, required this.surah});
+
+  final Surah surah;
+
+  @override
+  Widget build(BuildContext context) {
+    // Generous room above so the title sits clear of the position chip
+    // rather than crowding it, and a smaller gap below since the ayah is
+    // centred in its own space anyway.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 6),
+      child: Column(
+        children: [
+          Text(
+            surah.nameArabic,
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            // Smaller than the ayah's own Arabic: this names the chapter,
+            // it shouldn't compete with the verse for attention. The
+            // display line height is for running verse text — a one-line
+            // title just gets padded by it, so tighten it here.
+            style: FeedText.arabic(size: 20).copyWith(height: 1.3),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${surah.number}. ${surah.nameTranslation} '
+            '\u00b7 ${surah.revelationType} \u00b7 ${surah.ayahCount}',
+            textAlign: TextAlign.center,
+            style: FeedText.label(color: FeedColors.inkSoft)
+                .copyWith(fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lays out [text] to find how tall it renders at [style] — shared by the
+/// fit-scaling in [AyahPage] and [VersePage].
+double _measureText(
+  String text,
+  TextStyle style,
+  double maxWidth,
+  TextScaler scaler,
+  TextDirection direction,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: direction,
+    textAlign: TextAlign.center,
+    textScaler: scaler,
+  )..layout(maxWidth: maxWidth);
+  return painter.size.height;
+}
+
 
 /// Small, low-contrast "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬ÂÃ‚Â¢Ãƒâ€šÃ‚Â¡ 1/5 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬" readout centered above the verse ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â never
 /// competes with the Arabic and translation for attention.
@@ -508,6 +580,7 @@ class _VerseActions extends StatelessWidget {
     required this.onShare,
     required this.onToggleLike,
     required this.onTogglePlayback,
+    this.likesLabel,
   });
 
   final bool liked;
@@ -516,17 +589,136 @@ class _VerseActions extends StatelessWidget {
   final VoidCallback onToggleLike;
   final VoidCallback onTogglePlayback;
 
+  /// The curated like count under the heart icon, shown only in Most Liked
+  /// mode.
+  final String? likesLabel;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PlayButton(state: recitation, onTap: onTogglePlayback),
         const SizedBox(width: 32),
         _CircleButton(icon: Icons.ios_share, onTap: onShare),
         const SizedBox(width: 32),
-        _LikeButton(liked: liked, onTap: onToggleLike),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _LikeButton(liked: liked, onTap: onToggleLike),
+            // Reserves the same height whether or not a label is showing,
+            // so the heart icon itself never shifts up/down when this row's
+            // taller neighbor (this same column) forces the row to grow.
+            SizedBox(
+              height: 16,
+              child: likesLabel == null
+                  ? null
+                  : Center(
+                      child: Text(
+                        likesLabel!,
+                        style: FeedText.label(
+                          color: FeedColors.inkSoft,
+                        ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+}
+
+/// Small pill above the action row that switches the feed between its
+/// normal sequential-through-the-Quran order and the curated Most Liked
+/// ranking.
+class _MostLikedToggle extends StatelessWidget {
+  const _MostLikedToggle({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            color: active
+                ? FeedColors.gold
+                : FeedColors.chip.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: active ? Colors.transparent : FeedColors.chipBorder,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                active ? Icons.local_fire_department : Icons.trending_up,
+                size: 16,
+                color: active ? FeedColors.bg : FeedColors.ink,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Most Liked',
+                style: FeedText.label(
+                  color: active ? FeedColors.bg : FeedColors.ink,
+                ).copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 8),
+              _MiniSwitch(active: active),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small on/off pill mirroring the toggle's own state, sized to sit
+/// inline in a 13px-text row rather than the much larger stock [Switch].
+class _MiniSwitch extends StatelessWidget {
+  const _MiniSwitch({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      height: 18,
+      width: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: active
+            ? FeedColors.bg.withValues(alpha: 0.35)
+            : FeedColors.ink.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        alignment: active ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          height: 14,
+          width: 14,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? FeedColors.bg : FeedColors.ink,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- minWidth/minHeight ~ a 2x1 home screen cell block — small enough to
+     shrink to on most launchers while still leaving room for the ayah
+     text (autosized, see the layout) plus the reference line underneath.
+     maxResizeWidth/Height let it grow to roughly a 5x4 block on launchers
+     that respect those (API 31+ — ignored, not broken, below that).
+     updatePeriodMillis is clamped by Android to a 30-minute floor
+     regardless of what's written here — that's the ceiling on how late
+     the midnight verse rollover can show up while the app itself stays
+     closed. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="100dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="330dp"
+    android:maxResizeHeight="330dp"
+    android:updatePeriodMillis="1800000"
+    android:previewImage="@mipmap/ic_launcher"
+    android:initialLayout="@layout/daily_verse_widget"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description" />

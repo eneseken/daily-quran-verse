@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/quran_verse.dart';
 import '../services/quran_service.dart';
 
-/// Languages offered in the picker. `quran_verses.translations` currently
-/// only has rows for 'en' and 'tr' — QuranVerse.textFor() falls back to
-/// English for the rest, so picking one of them shows the ayah translation
-/// in English until that column is populated server-side. The UI copy
-/// (AppStrings) is fully translated for all eight regardless, since that
-/// doesn't depend on the Supabase data.
+/// Languages offered in the picker. All eight are backed by a real
+/// translation in `assets/quran.json` (Arabic renders the ayah text itself
+/// rather than a translation — see [QuranVerse.textFor]), and the UI copy
+/// in AppStrings is translated to match.
 const supportedQuranLanguages = {
   'en': 'English',
   'tr': 'Türkçe',

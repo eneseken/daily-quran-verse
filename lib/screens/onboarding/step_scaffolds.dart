@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,8 +25,8 @@ Widget heading(String text, {double size = 27}) => Padding(
         TextSpan(
           children: markup(
             text,
-            AppText.serif(size: size),
-            AppText.serif(size: size, color: AppColors.gold),
+            AppText.sans(size: size, color: AppColors.ink, weight: FontWeight.w700, height: 1.24),
+            AppText.sans(size: size, color: AppColors.gold, weight: FontWeight.w700, height: 1.24),
           ),
         ),
       ),
@@ -51,7 +49,12 @@ Widget quoteLine(String text) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Text(
         text,
-        style: AppText.serif(size: 17, height: 1.45, style: FontStyle.italic),
+        style: AppText.sans(
+          size: 16,
+          color: AppColors.ink,
+          height: 1.45,
+          style: FontStyle.italic,
+        ),
       ),
     );
 
@@ -71,12 +74,16 @@ class StatementStep extends StatelessWidget {
     required this.onNext,
     this.stepDelay = const Duration(milliseconds: 640),
     this.alignment = CrossAxisAlignment.start,
+    this.progress = 0,
+    this.onBack,
   });
 
   final List<Widget> blocks;
   final VoidCallback onNext;
   final Duration stepDelay;
   final CrossAxisAlignment alignment;
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -87,103 +94,76 @@ class StatementStep extends StatelessWidget {
       children: blocks,
     );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onNext,
-      child: SafeArea(
-        child: Padding(
-          padding: kPagePadding,
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(child: column),
-                ),
+    return SafeArea(
+      child: Padding(
+        padding: kPagePadding,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(child: column),
               ),
-              DelayedFade(
-                delay: column.settleTime(),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 22),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Tap to continue',
-                        style: AppText.sans(size: 14.5),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '→',
-                        style: TextStyle(color: AppColors.gold, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: PrimaryButton(label: 'Continue', onPressed: onNext),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// A single line of copy that shows briefly, then moves on by itself.
-class InterstitialStep extends StatefulWidget {
+/// A single line of copy with its own Continue button — previously this
+/// advanced on a timer by itself, but every beat of the flow now waits for
+/// the user rather than dictating the pace to them.
+class InterstitialStep extends StatelessWidget {
   const InterstitialStep({
     super.key,
     required this.text,
     required this.onNext,
-    this.hold = const Duration(milliseconds: 2100),
+    this.progress = 0,
+    this.onBack,
   });
 
   final String text;
   final VoidCallback onNext;
-  final Duration hold;
-
-  @override
-  State<InterstitialStep> createState() => _InterstitialStepState();
-}
-
-class _InterstitialStepState extends State<InterstitialStep> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(widget.hold, () {
-      if (mounted) widget.onNext();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onNext,
-      child: SafeArea(
-        child: Padding(
-          padding: kPagePadding,
-          child: Center(
-            child: Reveal(
-              child: Text.rich(
-                TextSpan(
-                  children: markup(
-                    widget.text,
-                    AppText.serif(size: 26),
-                    AppText.serif(size: 26, color: AppColors.gold),
+    return SafeArea(
+      child: Padding(
+        padding: kPagePadding,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: progress, onBack: onBack),
+            Expanded(
+              child: Center(
+                child: Reveal(
+                  child: Text.rich(
+                    TextSpan(
+                      children: markup(
+                        text,
+                        AppText.sans(size: 24, color: AppColors.ink, weight: FontWeight.w700, height: 1.28),
+                        AppText.sans(size: 24, color: AppColors.gold, weight: FontWeight.w700, height: 1.28),
+                      ),
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: PrimaryButton(label: 'Continue', onPressed: onNext),
+            ),
+          ],
         ),
       ),
     );
@@ -194,6 +174,51 @@ class _InterstitialStepState extends State<InterstitialStep> {
 // Question screens
 // ---------------------------------------------------------------------------
 
+/// Top chrome shared by every step in the flow, not just the question
+/// screens: a back arrow (hidden on the very first step) plus the overall
+/// progress rail. Having this on every screen — statements and interstitials
+/// included — is what makes the flow read as one continuous, position-aware
+/// journey instead of a sequence of disconnected full-bleed cards.
+class OnboardingTopBar extends StatelessWidget {
+  const OnboardingTopBar({
+    super.key,
+    required this.progress,
+    this.onBack,
+  });
+
+  final double progress;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          height: 32,
+          width: 32,
+          child: onBack == null
+              ? null
+              : Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: onBack,
+                    customBorder: const CircleBorder(),
+                    child: Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 16,
+                      color: AppColors.inkSoft,
+                    ),
+                  ),
+                ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: OnboardingProgress(value: progress)),
+      ],
+    );
+  }
+}
+
 /// Shared chrome for question screens: progress rail, revealed title, body.
 class QuestionShell extends StatelessWidget {
   const QuestionShell({
@@ -203,6 +228,7 @@ class QuestionShell extends StatelessWidget {
     required this.child,
     this.subtitle,
     this.footer,
+    this.onBack,
   });
 
   final String title;
@@ -210,6 +236,7 @@ class QuestionShell extends StatelessWidget {
   final double progress;
   final Widget child;
   final Widget? footer;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +247,7 @@ class QuestionShell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            OnboardingProgress(value: progress),
+            OnboardingTopBar(progress: progress, onBack: onBack),
             const SizedBox(height: 34),
             Reveal(
               offsetY: 16,
@@ -232,8 +259,8 @@ class QuestionShell extends StatelessWidget {
                     TextSpan(
                       children: markup(
                         title,
-                        AppText.serif(size: 26),
-                        AppText.serif(size: 26, color: AppColors.gold),
+                        AppText.sans(size: 24, color: AppColors.ink, weight: FontWeight.w700, height: 1.28),
+                        AppText.sans(size: 24, color: AppColors.gold, weight: FontWeight.w700, height: 1.28),
                       ),
                     ),
                   ),
@@ -258,7 +285,9 @@ class QuestionShell extends StatelessWidget {
   }
 }
 
-/// Pick one — advances on its own a beat after the tap.
+/// Pick one — stays put until the user confirms with Continue, rather than
+/// whisking them to the next screen the instant they tap an option. Picking
+/// a different option before confirming is free.
 class SingleChoiceStep extends StatefulWidget {
   const SingleChoiceStep({
     super.key,
@@ -269,6 +298,7 @@ class SingleChoiceStep extends StatefulWidget {
     required this.onSelected,
     required this.onNext,
     this.subtitle,
+    this.onBack,
   });
 
   final String title;
@@ -278,6 +308,7 @@ class SingleChoiceStep extends StatefulWidget {
   final String? selected;
   final ValueChanged<String> onSelected;
   final VoidCallback onNext;
+  final VoidCallback? onBack;
 
   @override
   State<SingleChoiceStep> createState() => _SingleChoiceStepState();
@@ -285,7 +316,6 @@ class SingleChoiceStep extends StatefulWidget {
 
 class _SingleChoiceStepState extends State<SingleChoiceStep> {
   String? _local;
-  Timer? _timer;
 
   @override
   void initState() {
@@ -293,20 +323,10 @@ class _SingleChoiceStepState extends State<SingleChoiceStep> {
     _local = widget.selected;
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
   void _pick(String value) {
     HapticFeedback.selectionClick();
     setState(() => _local = value);
     widget.onSelected(value);
-    _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 280), () {
-      if (mounted) widget.onNext();
-    });
   }
 
   @override
@@ -315,6 +335,11 @@ class _SingleChoiceStepState extends State<SingleChoiceStep> {
       title: widget.title,
       subtitle: widget.subtitle,
       progress: widget.progress,
+      onBack: widget.onBack,
+      footer: PrimaryButton(
+        label: 'Continue',
+        onPressed: _local == null ? null : widget.onNext,
+      ),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -347,6 +372,7 @@ class MultiChoiceStep extends StatefulWidget {
     required this.onChanged,
     required this.onNext,
     this.subtitle,
+    this.onBack,
   });
 
   final String title;
@@ -356,6 +382,7 @@ class MultiChoiceStep extends StatefulWidget {
   final List<String> selected;
   final ValueChanged<List<String>> onChanged;
   final VoidCallback onNext;
+  final VoidCallback? onBack;
 
   @override
   State<MultiChoiceStep> createState() => _MultiChoiceStepState();
@@ -382,6 +409,7 @@ class _MultiChoiceStepState extends State<MultiChoiceStep> {
       title: widget.title,
       subtitle: widget.subtitle,
       progress: widget.progress,
+      onBack: widget.onBack,
       footer: PrimaryButton(
         label: 'Continue',
         onPressed: _local.isEmpty ? null : widget.onNext,
@@ -417,6 +445,7 @@ class SliderStep extends StatefulWidget {
     required this.value,
     required this.onChanged,
     required this.onNext,
+    this.onBack,
   });
 
   final String title;
@@ -424,6 +453,7 @@ class SliderStep extends StatefulWidget {
   final int value;
   final ValueChanged<int> onChanged;
   final VoidCallback onNext;
+  final VoidCallback? onBack;
 
   @override
   State<SliderStep> createState() => _SliderStepState();
@@ -437,6 +467,7 @@ class _SliderStepState extends State<SliderStep> {
     return QuestionShell(
       title: widget.title,
       progress: widget.progress,
+      onBack: widget.onBack,
       footer: PrimaryButton(label: 'Continue', onPressed: widget.onNext),
       child: Reveal(
         delay: const Duration(milliseconds: 160),
@@ -504,11 +535,15 @@ class NameStep extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     required this.onNext,
+    this.progress = 0,
+    this.onBack,
   });
 
   final String initial;
   final ValueChanged<String> onChanged;
   final VoidCallback onNext;
+  final double progress;
+  final VoidCallback? onBack;
 
   @override
   State<NameStep> createState() => _NameStepState();
@@ -533,6 +568,9 @@ class _NameStepState extends State<NameStep> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
+            OnboardingTopBar(progress: widget.progress, onBack: widget.onBack),
+            const SizedBox(height: 8),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -542,15 +580,20 @@ class _NameStepState extends State<NameStep> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text(
-                          'first things first',
+                          'before we begin',
                           style: AppText.sans(size: 15),
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 26),
                         child: Text(
-                          'Who are we praying with?',
-                          style: AppText.serif(size: 26),
+                          "What should we call you?",
+                          style: AppText.sans(
+                            size: 24,
+                            color: AppColors.ink,
+                            weight: FontWeight.w700,
+                            height: 1.28,
+                          ),
                         ),
                       ),
                       Container(

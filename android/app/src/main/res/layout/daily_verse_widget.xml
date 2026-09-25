@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home screen widget layout: today's verse text, centered, with the
+     surah:ayah reference underneath, over an optional wallpaper matching
+     the Customize screen's selection. RemoteViews only supports a small
+     subset of views/attrs (no custom fonts, no elevation), so this stays
+     plain: a background ImageView (shown only when a Customize wallpaper
+     is active — see DailyVerseWidgetProvider) behind a solid-color
+     fallback, with the two TextViews on top. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+
+    <!-- Set with setImageViewBitmap + made visible only when a Customize
+         wallpaper is selected; stays GONE (falling back to the solid
+         widget_background above) otherwise. -->
+    <ImageView
+        android:id="@+id/widget_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <!-- layout_height=0dp + weight, rather than wrap_content, so this
+             view has an actual bounded height for autoSizeTextType to fit
+             text into — wrap_content would just grow with the text and
+             give autosize nothing to shrink against. minTextSize/
+             maxTextSize give a short ayah a noticeably bigger font and a
+             long one a noticeably smaller one, both still legible.
+             autoSizeTextType requires API 26+; below that it's silently
+             ignored and textSize is used as a fixed fallback size. -->
+        <TextView
+            android:id="@+id/widget_verse_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/widget_ink"
+            android:textSize="15sp"
+            android:lineSpacingMultiplier="1.25"
+            android:maxLines="6"
+            android:ellipsize="end"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="11sp"
+            android:autoSizeMaxTextSize="24sp"
+            android:autoSizeStepGranularity="1sp"
+            android:text="@string/widget_placeholder_text" />
+
+        <TextView
+            android:id="@+id/widget_verse_reference"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textColor="@color/widget_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.03"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="@string/widget_placeholder_reference" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -42,9 +42,13 @@ class QuranVerse {
   /// Keyed by language code, e.g. `{"en": "...", "tr": "..."}`.
   final Map<String, String> translations;
 
-  /// Falls back to English, then to whatever is available, so a missing
-  /// translation never renders as an empty card.
+  /// The reading text for [languageCode]: the Arabic itself when Arabic is
+  /// the chosen language (there is no separate "Arabic translation" — the
+  /// ayah is already in it), otherwise that language's translation, falling
+  /// back to English and then to whatever exists so a missing translation
+  /// never renders as an empty card.
   String textFor(String languageCode) {
+    if (languageCode == 'ar') return arabicText;
     return translations[languageCode] ??
         translations['en'] ??
         (translations.isNotEmpty ? translations.values.first : arabicText);

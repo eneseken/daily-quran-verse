@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-/// Fades a block in while it drifts up a little. Used to bring the copy on the
+/// Fades a block in in place, no drift. Used to bring the copy on the
 /// statement screens in one line at a time instead of all at once.
 class Reveal extends StatefulWidget {
   const Reveal({
@@ -10,6 +10,8 @@ class Reveal extends StatefulWidget {
     required this.child,
     this.delay = Duration.zero,
     this.duration = const Duration(milliseconds: 720),
+    // Kept so call sites that still pass it don't need touching, but a plain
+    // fade no longer reads a vertical offset from it.
     this.offsetY = 26,
   });
 
@@ -29,14 +31,12 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
   );
   Timer? _timer;
 
+  // Same curve and duration as before the slide was removed, so the pacing
+  // of a reveal — and a RevealColumn's staggered rhythm — feels identical.
   late final Animation<double> _fade = CurvedAnimation(
     parent: _controller,
     curve: Curves.easeOut,
   );
-  late final Animation<Offset> _slide = Tween<Offset>(
-    begin: Offset(0, widget.offsetY / 100),
-    end: Offset.zero,
-  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
   @override
   void initState() {
@@ -59,10 +59,7 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
-    );
+    return FadeTransition(opacity: _fade, child: widget.child);
   }
 }
 
