@@ -12,10 +12,20 @@ import '../widgets/reveal.dart';
 /// supplied the answers are written to the profile right after the account is
 /// created.
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, this.onboarding, this.onAuthenticated});
+  const AuthScreen({
+    super.key,
+    this.onboarding,
+    this.onAuthenticated,
+    this.onContinueWithoutAccount,
+  });
 
   final OnboardingData? onboarding;
   final VoidCallback? onAuthenticated;
+
+  /// Offered once signing in has failed for a reason that isn't the
+  /// reader's credentials — an unreachable backend shouldn't lock them out
+  /// of a Quran that ships inside the app.
+  final VoidCallback? onContinueWithoutAccount;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -29,6 +39,11 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isRegister = true;
   bool _busy = false;
   String? _error;
+
+  /// Whether the last failure looked like the backend being unreachable
+  /// rather than a bad email or password — the case where carrying on
+  /// without an account is the reasonable way out.
+  bool _authUnreachable = false;
 
   @override
   void initState() {
@@ -69,6 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _authUnreachable = false;
     });
 
     try {
@@ -98,9 +114,26 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       widget.onAuthenticated?.call();
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      // Supabase reports a paused project or a failed request as an
+      // AuthException too, so a 5xx or a transport failure is treated as
+      // unreachable while a rejected email/password is not.
+      final unreachable = e.statusCode == null ||
+          (int.tryParse(e.statusCode!) ?? 0) >= 500;
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _authUnreachable = unreachable;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Something went wrong. Try again.');
+      // Anything that isn't an auth rejection — no connection, DNS, TLS,
+      // a timeout — means the account system simply can't be reached.
+      if (mounted) {
+        setState(() {
+          _error = "Couldn't reach the server. Check your connection.";
+          _authUnreachable = true;
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -220,6 +253,17 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: AppText.sans(size: 14, color: AppColors.inkSoft),
                 ),
               ),
+              // Only after the account system itself turned out to be
+              // unreachable — the whole Quran is bundled with the app, so
+              // there is no reason to hold someone at this screen over it.
+              if (_authUnreachable && widget.onContinueWithoutAccount != null)
+                TextButton(
+                  onPressed: _busy ? null : widget.onContinueWithoutAccount,
+                  child: Text(
+                    'Continue without an account',
+                    style: AppText.sans(size: 14, color: AppColors.gold),
+                  ),
+                ),
               const SizedBox(height: 8),
             ],
           ),

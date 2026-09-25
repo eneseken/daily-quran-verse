@@ -100,6 +100,13 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
   bool _onboardingSeen = false;
   bool _notificationsSynced = false;
 
+  /// Set when sign-in couldn't be reached and the reader chose to carry on
+  /// without an account. The Quran ships with the app, so the feed works
+  /// perfectly well unauthenticated — only likes and the saved language
+  /// need a backend, and both degrade quietly. Deliberately not persisted:
+  /// the next launch tries to sign in again.
+  bool _browsingAsGuest = false;
+
   /// Answers waiting to be attached to a brand new account.
   OnboardingData? _pendingAnswers;
 
@@ -154,6 +161,20 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     });
   }
 
+  /// Lets the reader into the feed without an account, after sign-in has
+  /// failed for a reason that isn't their credentials. Onboarding counts as
+  /// seen so the flow isn't replayed on the way back.
+  Future<void> _continueAsGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingSeenKey, true);
+    if (!mounted) return;
+    setState(() {
+      _onboardingSeen = true;
+      _pendingAnswers = null;
+      _browsingAsGuest = true;
+    });
+  }
+
   Future<void> _finishOnboarding(OnboardingData data) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onboardingSeenKey, true);
@@ -190,6 +211,9 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
 
         _notificationsSynced = false;
 
+        // Signing in is unreachable but the reader asked to go on anyway.
+        if (_browsingAsGuest) return const _SignedIn();
+
         if (!_onboardingSeen) {
           return OnboardingFlow(onComplete: _finishOnboarding);
         }
@@ -197,6 +221,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
         return AuthScreen(
           onboarding: _pendingAnswers,
           onAuthenticated: () => setState(() => _pendingAnswers = null),
+          onContinueWithoutAccount: _continueAsGuest,
         );
       },
     );

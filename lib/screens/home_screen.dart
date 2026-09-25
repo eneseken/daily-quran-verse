@@ -119,22 +119,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     try {
-      final results = await Future.wait([
-        QuranService.instance.loadSurahs(),
-        QuranService.instance.loadLikedVerseIds(),
-        QuranLanguageController.instance.restore(),
-        ArabicVisibilityController.instance.restore(),
-      ]);
-      if (!mounted) return;
-      final surahs = results[0] as List<Surah>;
+      // The Quran itself is a bundled asset, so the feed can always be
+      // shown. Everything else — likes, the saved language — comes from
+      // Supabase and is per-user polish: if the account is signed out, the
+      // network is down or the project is unreachable, the reader still
+      // gets the whole Quran rather than an error screen.
+      final surahs = await QuranService.instance.loadSurahs();
       final verses = await QuranService.instance.loadAll();
       final mostLiked = await MostLikedVerses.resolve(verses);
+      await ArabicVisibilityController.instance.restore();
+
+      final liked = await _loadLikesOrEmpty();
+      await _restoreLanguageOrDefault();
+
       if (!mounted) return;
       setState(() {
         _surahs = surahs;
         _verses = verses;
         _mostLiked = mostLiked;
-        _liked = results[1] as Set<int>;
+        _liked = liked;
         _language = QuranLanguageController.instance.code;
         // Start on some surah's opening ayah rather than mid-chapter, so
         // the first thing on screen reads as a beginning.
@@ -149,11 +152,34 @@ class _HomeScreenState extends State<HomeScreen> {
       // user's current language every time the feed loads.
       unawaited(DailyVerseWidgetService.updateForToday(_language));
     } catch (_) {
+      // Only a broken asset can land here now, which would be a packaging
+      // fault rather than anything the reader can fix by reconnecting.
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = "Couldn't load verses. Check your connection and try again.";
+        _error = "Couldn't load the Quran. Please reinstall the app.";
       });
+    }
+  }
+
+  /// The signed-in user's liked ayahs, or none if they can't be fetched —
+  /// an unreachable backend costs the heart icons their fill, not the feed.
+  Future<Set<int>> _loadLikesOrEmpty() async {
+    try {
+      return await QuranService.instance.loadLikedVerseIds();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Restores the saved reading language, falling back to the device's own
+  /// when it can't be read back.
+  Future<void> _restoreLanguageOrDefault() async {
+    try {
+      await QuranLanguageController.instance.restore();
+    } catch (_) {
+      // Leaves the controller on whatever it already holds, which is the
+      // device-derived default.
     }
   }
 
@@ -204,7 +230,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _liked.add(verse.id);
       }
     });
-    await QuranService.instance.setLiked(verse, !liked);
+    try {
+      await QuranService.instance.setLiked(verse, !liked);
+    } catch (_) {
+      // The heart already moved; a backend that can't record it shouldn't
+      // throw the tap back in the reader's face.
+    }
   }
 
   void _share(QuranVerse verse) {
