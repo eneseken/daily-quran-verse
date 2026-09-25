@@ -35,7 +35,7 @@ workflows:
         certificates:
           - cert
         provisioning_profiles:
-          - profile: pppp
+          - profile: daily_quran_verse_appstore
             environment_variable: APP_STORE_PROFILE
     scripts:
       - name: Set up keychain
